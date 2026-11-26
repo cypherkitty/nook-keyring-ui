@@ -1,87 +1,65 @@
 <script>
   import { tick } from "svelte";
-  import { Check, Laptop, Plus, Link2, Smartphone, Cloud } from "lucide-svelte";
+  import { CheckCheck, Link2, Plus } from "lucide-svelte";
+  import VaultDiagram from "./VaultDiagram.svelte";
 
   let stage = $state("create");
-  let heading = $state();
-  let created = $derived(stage !== "create");
-  let paired = $derived(stage === "paired");
+  let completion = $state();
+  const created = $derived(stage !== "create");
+  const linked = $derived(stage === "linked");
 
   async function advance() {
-    stage = created ? "paired" : "link";
+    if (!created) {
+      stage = "link";
+      return;
+    }
+    stage = "linked";
     await tick();
-    heading.focus();
+    completion.focus({ preventScroll: true });
   }
 </script>
 
 <header class="masthead">
-  <div class="brand"><img src="/nook.svg" alt="" />nook<span>.</span></div>
+  <div class="brand" aria-label="Nook">
+    <img src="/nook.svg" alt="" />nook<span>.</span>
+  </div>
   <span class="descriptor">Local-first password manager</span>
 </header>
 
 <main>
-  <ol class="steps" aria-label="Vault setup progress">
-    <li
-      class:current={!created}
-      class:complete={created}
-      aria-current={!created ? "step" : undefined}
-    >
-      <span class="number">
-        {#if created}<Check size={14} />{:else}1{/if}
-      </span>Create vault
-    </li>
-    <li
-      class:current={created && !paired}
-      class:complete={paired}
-      aria-current={created && !paired ? "step" : undefined}
-    >
-      <span class="number">
-        {#if paired}<Check size={14} />{:else}2{/if}
-      </span>Add device
-    </li>
-  </ol>
+  <div class="introduction">
+    <h1>Your vault lives on <em>your devices.</em></h1>
+    <p>Dropbox keeps an encrypted copy in sync between them.</p>
+  </div>
 
-  <section class="setup-card" aria-labelledby="setup-title">
-    <div class="content">
-      <div class="device-label">
-        {#if created}<Link2 size={16} />{paired
-            ? "Your keyring"
-            : "Next device"}{:else}<Laptop size={16} />This device{/if}
-      </div>
-      <h1 id="setup-title" tabindex="-1" bind:this={heading}>
-        {#if !created}Create your<br />local vault.{:else if !paired}Add another<br
-          />device.{:else}Your devices<br />are linked.{/if}
-      </h1>
-      <p>
-        {#if !created}Keep your passwords on this device in a vault of your own.{:else if !paired}On
-          your next device, connect to the same Dropbox account to link it to
-          your vault.{:else}Both devices now belong to the same keyring and
-          share one vault.{/if}
-      </p>
-      {#if !paired}
+  <section class="setup" aria-label="How your devices share a vault">
+    <VaultDiagram {created} {linked} />
+
+    <div class="action-bar">
+      {#if !linked}
+        <div class="next-step" aria-live="polite" aria-atomic="true">
+          <span class="step-count">Step {created ? "2" : "1"} of 2</span>
+          <p>
+            {created
+              ? "Connect the same Dropbox account on your other device."
+              : "Start on this device."}
+          </p>
+        </div>
         <button class="primary" onclick={advance}>
           {#if created}<Link2 size={17} />Link with Dropbox{:else}<Plus
-              size={18}
+              size={17}
             />Create vault{/if}
         </button>
       {:else}
-        <span class="finished"><Check size={16} />2 devices linked</span>
+        <div class="completion" tabindex="-1" bind:this={completion}>
+          <span class="success-icon"><CheckCheck size={20} /></span>
+          <div>
+            <strong>Devices linked</strong>
+            <p>Both devices now share one vault in your keyring.</p>
+          </div>
+        </div>
       {/if}
     </div>
-
-    {#if !created}
-      <div class="art" aria-hidden="true"></div>
-    {:else}
-      <div class="diagram" aria-hidden="true">
-        <div class="device-node"><Laptop size={42} strokeWidth={1.35} /></div>
-        <span class="connection"></span><span class="provider">
-          <Cloud size={24} />
-        </span><span class="connection"></span>
-        <div class="device-node" class:pending={!paired}>
-          <Smartphone size={39} strokeWidth={1.35} />
-        </div>
-      </div>
-    {/if}
   </section>
   <small class="preview-note">Interactive preview</small>
 </main>
