@@ -1,6 +1,6 @@
 <script>
   import { tick } from "svelte";
-  import { CheckCheck, Link2, Plus } from "lucide-svelte";
+  import { CheckCheck, Link2, MousePointer2, Plus } from "lucide-svelte";
   import VaultDiagram from "./VaultDiagram.svelte";
 
   let stage = $state("create");
@@ -20,10 +20,15 @@
 </script>
 
 <header class="masthead">
-  <div class="brand" aria-label="Nook">
-    <img src="/nook.svg" alt="" />nook<span>.</span>
+  <div class="identity">
+    <div class="brand" aria-label="Nook">
+      <img src="/nook.svg" alt="" />nook<span>.</span>
+    </div>
+    <span class="descriptor">Local-first password manager</span>
   </div>
-  <span class="descriptor">Local-first password manager</span>
+  <small class="preview-note">
+    <MousePointer2 size={15} aria-hidden="true" />Interactive preview
+  </small>
 </header>
 
 <main>
@@ -38,7 +43,16 @@
     <div class="action-bar">
       {#if !linked}
         <div class="next-step" aria-live="polite" aria-atomic="true">
-          <span class="step-count">Step {created ? "2" : "1"} of 2</span>
+          <div class="progress">
+            <span
+              class="progress-track"
+              class:second={created}
+              aria-hidden="true"
+            >
+              <i></i><i></i>
+            </span>
+            <span>Step {created ? "2" : "1"} of 2</span>
+          </div>
           <p>
             {created
               ? "Connect the same Dropbox account on your other device."
@@ -46,8 +60,9 @@
           </p>
         </div>
         <button class="primary" onclick={advance}>
-          {#if created}<Link2 size={17} />Link with Dropbox{:else}<Plus
-              size={17}
+          {#if created}<Link2 size={17} aria-hidden="true" />Link with Dropbox{:else}<Plus
+              size={18}
+              aria-hidden="true"
             />Create vault{/if}
         </button>
       {:else}
@@ -61,5 +76,4 @@
       {/if}
     </div>
   </section>
-  <small class="preview-note">Interactive preview</small>
 </main>
