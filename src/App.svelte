@@ -34,7 +34,10 @@
 <main>
   <div class="introduction">
     <h1>Your vault lives on <em>your devices.</em></h1>
-    <p>Dropbox keeps an encrypted copy in sync between them.</p>
+    <p>
+      Change a password on one device and it syncs to the other through your
+      cloud account.
+    </p>
   </div>
 
   <section class="setup" aria-label="How your devices share a vault">
@@ -55,12 +58,12 @@
           </div>
           <p>
             {created
-              ? "Connect the same Dropbox account on your other device."
+              ? "Use the same cloud account on both devices."
               : "Start on this device."}
           </p>
         </div>
         <button class="primary" onclick={advance}>
-          {#if created}<Link2 size={17} aria-hidden="true" />Link with Dropbox{:else}<Plus
+          {#if created}<Link2 size={17} aria-hidden="true" />Link device{:else}<Plus
               size={18}
               aria-hidden="true"
             />Create vault{/if}
