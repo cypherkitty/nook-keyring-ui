@@ -118,6 +118,18 @@
       role="tabpanel"
       aria-labelledby={"tab-" + selectedId}
     >
+      <div class="panel-bar">
+        <div class="context">
+          <selected.icon
+            size={17}
+            strokeWidth={1.6}
+            aria-hidden="true"
+          />{selected.name}
+        </div>
+        <span class="annotation">
+          <LockKeyhole size={13} aria-hidden="true" />Encrypted vault
+        </span>
+      </div>
       <div class="artifact">
         {#each locations as location}
           <img
@@ -131,19 +143,9 @@
             decoding="async"
           />
         {/each}
-        <span class="annotation">
-          <LockKeyhole size={13} aria-hidden="true" />Encrypted vault
-        </span>
       </div>
 
       <div class="detail">
-        <div class="context">
-          <selected.icon
-            size={17}
-            strokeWidth={1.6}
-            aria-hidden="true"
-          />{selected.name}
-        </div>
         <h1 tabindex="-1" bind:this={heading}>
           {title[0]} <em>{title[1]}</em>
         </h1>

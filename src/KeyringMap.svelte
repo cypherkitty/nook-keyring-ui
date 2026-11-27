@@ -3,13 +3,19 @@
 
   let { locations, stage, selectedId, onInspect } = $props();
   let tabs = [];
+  let viewportWidth = $state(0);
+  const vertical = $derived(viewportWidth >= 960);
 
   function navigate(event, index) {
+    if (!vertical && (event.key === "ArrowDown" || event.key === "ArrowUp"))
+      return;
     let next;
     switch (event.key) {
+      case "ArrowDown":
       case "ArrowRight":
         next = (index + 1) % locations.length;
         break;
+      case "ArrowUp":
       case "ArrowLeft":
         next = (index + locations.length - 1) % locations.length;
         break;
@@ -28,6 +34,8 @@
   }
 </script>
 
+<svelte:window bind:innerWidth={viewportWidth} />
+
 <section class="keyring" aria-labelledby="keyring-heading">
   <div class="map-heading">
     <h2 id="keyring-heading">Your keyring</h2>
@@ -37,6 +45,7 @@
     class="track"
     class:linked={stage === "linked"}
     role="tablist"
+    aria-orientation={vertical ? "vertical" : "horizontal"}
     aria-labelledby="keyring-heading"
     aria-describedby="map-hint"
   >
@@ -59,8 +68,8 @@
         onclick={() => onInspect(location.id)}
         onkeydown={(event) => navigate(event, index)}
       >
-        <span class="thumbnail" aria-hidden="true">
-          <img src={location.image} alt="" width="80" height="60" />
+        <span class="node-icon" aria-hidden="true">
+          <location.icon size={19} strokeWidth={1.65} />
         </span>
         <span class="station-copy">
           <strong>{location.name}</strong>
@@ -71,7 +80,7 @@
         {#if stage === "linked" || (stage === "local" && location.id === "local")}
           <span class="registered">
             <Check size={13} strokeWidth={2.2} /><span class="sr-only">
-              Linked
+              {stage === "linked" ? "Linked" : "Vault created"}
             </span>
           </span>
         {/if}
@@ -82,155 +91,157 @@
 
 <style>
   .keyring {
-    order: 2;
-    padding-top: 26px;
-    border-top: 1px solid var(--rule);
+    min-width: 0;
+    padding: 25px 15px;
+    background: #f8f8fa;
+    border-right: 1px solid var(--line);
   }
   .map-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 15px;
+    padding: 0 9px;
+    margin-bottom: 22px;
   }
   h2 {
     margin: 0;
-    font: 550 1.2rem/1.25 var(--display);
-    letter-spacing: -0.04em;
+    font: 600 1.16rem/1.25 var(--display);
+    letter-spacing: -0.045em;
   }
   .map-heading p {
-    margin: 0;
-    font: 400 0.77rem/1.4 var(--mono);
+    margin: 5px 0 0;
     color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
   }
   .track {
     display: grid;
-    grid-template-columns:
-      minmax(0, 1fr) clamp(20px, 5vw, 72px) minmax(0, 1.1fr)
-      clamp(20px, 5vw, 72px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 25px auto 25px auto;
     align-items: center;
   }
   .station {
     position: relative;
     display: flex;
     align-items: center;
-    gap: clamp(9px, 1.2vw, 18px);
+    gap: 10px;
     min-width: 0;
-    min-height: 85px;
-    height: 100%;
-    padding: 9px clamp(10px, 1vw, 17px);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    background: #fffdf9;
+    min-height: 66px;
+    padding: 10px 9px;
     text-align: left;
     color: var(--ink);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
     cursor: pointer;
-    transition:
-      background 0.18s,
-      border-color 0.18s;
   }
   .station:hover {
-    border-color: #b7967f;
-    background: #f8eee5;
+    background: #efeff4;
   }
   .station.active {
-    border-color: #ae785b;
-    background: linear-gradient(115deg, #f7e5d7, #fbf0e6);
-    box-shadow: inset 0 -2px 0 var(--accent);
+    background: #fff;
+    border-color: #d8d6e2;
+    box-shadow: 0 2px 4px #2119390d;
   }
-  .thumbnail {
-    display: block;
-    flex: 0 0 auto;
-    width: clamp(45px, 5.2vw, 75px);
-    aspect-ratio: 1.15;
-    overflow: hidden;
-    border-radius: 5px;
-    background: #201913;
+  .node-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #636370;
+    background: #eeeef2;
   }
-  .thumbnail img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: var(--hardware-finish);
+  .active .node-icon {
+    color: var(--violet);
+    background: #efebff;
   }
   .station-copy {
     min-width: 0;
     display: grid;
-    gap: 6px;
+    gap: 5px;
   }
   .station-copy strong {
-    font: 550 clamp(0.93rem, 1.35vw, 1.12rem)/1.18 var(--display);
+    font: 590 0.94rem/1.23 var(--display);
     letter-spacing: -0.03em;
     text-wrap: balance;
   }
   small {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font: 400 0.75rem/1.35 var(--mono);
+    gap: 4px;
     color: var(--muted);
+    font: 400 0.75rem/1.35 var(--mono);
   }
   small :global(svg) {
     flex: none;
   }
   .registered {
     position: absolute;
-    right: 6px;
-    top: 6px;
+    right: 4px;
+    top: 4px;
     display: grid;
     place-items: center;
-    width: 17px;
-    height: 17px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: #eed7c7;
-    color: var(--accent);
+    background: #eae4ff;
+    color: var(--violet);
   }
   .route {
     position: relative;
-    height: 1.5px;
-    margin: 0 7px;
-    background: #9e7c66;
-    color: #8d6b55;
+    width: 1.5px;
+    height: 17px;
+    margin-left: 25px;
+    color: #888597;
+    background: currentColor;
   }
   .route::before,
   .route::after {
     content: "";
     position: absolute;
-    top: 50%;
-    width: 6px;
-    height: 6px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
     border-top: 1.5px solid;
     border-right: 1.5px solid;
   }
   .route::before {
-    left: 0;
-    transform: translateY(-50%) rotate(-135deg);
+    top: 0;
+    transform: translateX(-50%) rotate(-45deg);
   }
   .route::after {
-    right: 0;
-    transform: translateY(-50%) rotate(45deg);
+    bottom: 0;
+    transform: translateX(-50%) rotate(135deg);
   }
   .linked .route {
-    background: var(--accent);
+    color: var(--violet);
   }
   @media (prefers-reduced-motion: no-preference) {
     .linked .route i {
       position: absolute;
-      left: 0;
-      top: -2px;
-      width: 5px;
-      height: 5px;
+      top: 0;
+      left: 50%;
+      width: 4px;
+      height: 4px;
       border-radius: 50%;
       opacity: 0;
-      background: #b15229;
-      box-shadow: 0 0 8px #d89264;
-      animation: travel 0.65s ease-in-out;
+      background: var(--violet);
+      transform: translate(-50%, -50%);
+      animation: down 0.65s ease-in-out;
     }
     .linked .route.second i {
       animation-delay: 0.65s;
     }
-    @keyframes travel {
+    @keyframes down {
+      12%,
+      88% {
+        opacity: 1;
+      }
+      to {
+        top: 100%;
+        opacity: 0;
+      }
+    }
+    @keyframes across {
       12%,
       88% {
         opacity: 1;
@@ -241,91 +252,103 @@
       }
     }
   }
-  @media (max-width: 900px) and (min-width: 681px) {
-    .track {
-      grid-template-columns: minmax(0, 1fr) 23px minmax(0, 1.13fr) 23px minmax(
-          0,
-          1fr
-        );
-    }
-    .station {
-      gap: 8px;
-      padding-inline: 8px;
-    }
-    .route {
-      margin-inline: 4px;
-    }
-    small {
-      font-size: 0.69rem;
-    }
-  }
-  @media (max-width: 680px) {
+  @media (max-width: 959px) {
     .keyring {
-      order: 0;
-      border: 0;
-      padding-top: 0;
+      padding: 16px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
     }
     .map-heading {
-      margin-bottom: 10px;
-    }
-    h2 {
-      font-size: 1.05rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0;
+      margin-bottom: 11px;
     }
     .map-heading p {
-      font-size: 0.69rem;
+      margin: 0;
     }
     .track {
-      grid-template-columns: minmax(0, 1fr) 17px minmax(0, 1.12fr) 17px minmax(
+      grid-template-rows: auto;
+      grid-template-columns: minmax(0, 1fr) clamp(16px, 4vw, 42px) minmax(
           0,
-          1fr
-        );
+          1.12fr
+        ) clamp(16px, 4vw, 42px) minmax(0, 1fr);
       align-items: stretch;
     }
     .station {
-      display: grid;
-      grid-template-rows: 35px 1fr;
-      justify-items: center;
-      gap: 4px;
-      min-height: 0;
-      padding: 7px 3px 9px;
-      text-align: center;
-      border-radius: 7px;
-    }
-    .thumbnail {
-      width: 47px;
-      height: 35px;
-      border-radius: 3px;
-    }
-    .station-copy {
-      align-self: center;
-      gap: 3px;
-    }
-    .station-copy strong {
-      font-size: clamp(0.78rem, 2.85vw, 0.98rem);
-      line-height: 1.18;
-    }
-    small {
-      justify-content: center;
-      gap: 2px;
-      font-size: clamp(0.65rem, 2.2vw, 0.74rem);
-    }
-    small :global(svg) {
-      display: none;
+      min-height: 57px;
+      padding: 7px;
     }
     .route {
+      width: calc(100% - 6px);
+      height: 1.5px;
+      margin: 0 3px;
       align-self: center;
-      margin-inline: 3px;
     }
     .route::before,
     .route::after {
-      width: 3px;
-      height: 3px;
+      left: auto;
+      top: 50%;
+      bottom: auto;
     }
-    .registered {
-      width: 14px;
-      height: 14px;
-      top: 3px;
-      right: 3px;
+    .route::before {
+      left: 0;
+      transform: translateY(-50%) rotate(-135deg);
+    }
+    .route::after {
+      right: 0;
+      transform: translateY(-50%) rotate(45deg);
+    }
+    .linked .route i {
+      left: 0;
+      top: 50%;
+      animation-name: across;
+    }
+  }
+  @media (max-width: 580px) {
+    .keyring {
+      padding: 14px 9px 10px;
+    }
+    .map-heading {
+      padding-inline: 4px;
+    }
+    h2 {
+      font-size: 1.02rem;
+    }
+    .map-heading p {
+      font-size: 0.73rem;
+    }
+    .station {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      text-align: center;
+      padding: 6px 2px 7px;
+    }
+    .node-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+    }
+    .node-icon :global(svg) {
+      width: 16px;
+      height: 16px;
+    }
+    .station-copy {
+      gap: 3px;
+    }
+    .station-copy strong {
+      font-size: clamp(0.78rem, 2.9vw, 0.94rem);
+    }
+    small {
+      justify-content: center;
+      font-size: 0.69rem;
+    }
+    small :global(svg) {
+      display: none;
     }
   }
 </style>
