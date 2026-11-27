@@ -1,26 +1,38 @@
 <script>
   import { onDestroy, tick } from "svelte";
   import { Button } from "$lib/components/ui/button";
-  import * as Card from "$lib/components/ui/card";
-  import { Progress } from "$lib/components/ui/progress";
   import Check from "@lucide/svelte/icons/check";
-  import Plus from "@lucide/svelte/icons/plus";
-  import Link from "@lucide/svelte/icons/link";
-  import Loader from "@lucide/svelte/icons/loader-circle";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
   import KeyringMap from "./KeyringMap.svelte";
 
-  // The three entries are this device, the user's cloud, and the linked device.
-  // Zero is an empty location; a positive number is a simulated vault revision.
+  // Device, storage account, second device. A positive revision is a vault copy.
   let copies = $state([0, 0, 0]);
   let transfer = $state(null);
-  let controls = $state([null, null]);
   let timers = [];
-  const hopDuration = 850;
+  const hopDuration = 1050;
   const created = $derived(copies[0] > 0);
   const linked = $derived(copies[2] > 0);
-  const completed = $derived(Number(created) + Number(linked));
+  const memberCount = $derived(Number(created) + Number(linked));
   const revision = $derived(Math.max(...copies));
+
+  const stages = [
+    {
+      title: "Build your personal cloud",
+      description:
+        "Your devices form your cloud. Each keeps an encrypted password vault, and your own storage account keeps them in sync.",
+    },
+    {
+      title: "Add your second device",
+      description:
+        "This device now holds your vault. Link another through your own cloud storage to give it an encrypted copy.",
+    },
+    {
+      title: "Your cloud is ready",
+      description:
+        "Both devices keep your encrypted vault. Your storage account holds the only online copy and keeps them in sync.",
+    },
+  ];
+  const steps = ["Create vault", "Link device"];
 
   function clearTimers() {
     timers.forEach(clearTimeout);
@@ -33,14 +45,14 @@
     transfer = null;
     copies = [0, 0, 0];
     await tick();
-    controls[0]?.focus({ preventScroll: true });
+    document.getElementById("create-vault")?.focus();
   }
 
   async function createVault() {
     if (created) return;
     copies[0] = 1;
     await tick();
-    controls[1]?.focus({ preventScroll: true });
+    document.getElementById("link-device")?.focus({ preventScroll: true });
   }
 
   function sendCopy(source, target, version) {
@@ -79,27 +91,6 @@
     copies[source] = version;
     sendCopy(source, 2 - source, version);
   }
-
-  const steps = $derived([
-    {
-      title: "Create your vault",
-      description: "Store it on this device.",
-      action: created ? "Vault created" : "Create vault",
-      icon: created ? Check : Plus,
-      complete: created,
-      enabled: !created,
-      run: createVault,
-    },
-    {
-      title: "Link another device",
-      description: "Connect your cloud account.",
-      action: linked ? "Device linked" : transfer ? "Linking…" : "Link device",
-      icon: linked ? Check : transfer ? Loader : Link,
-      complete: linked,
-      enabled: created && !linked && !transfer,
-      run: linkDevice,
-    },
-  ]);
 </script>
 
 <header class="site-header">
@@ -126,7 +117,7 @@
 </header>
 
 <main class="frame">
-  <div class="hero">
+  <section class="hero" aria-labelledby="setup-heading">
     <figure class="hero-art">
       <picture>
         <source media="(max-width: 680px)" srcset="/keyring/vault-ring.webp" />
@@ -140,66 +131,36 @@
       </picture>
     </figure>
 
-    <section class="setup" aria-labelledby="setup-heading">
-      <div class="setup-intro">
-        <div class="setup-progress">
-          <div class="progress-label">
-            <span>Vault setup</span><span>
-              {completed} of 2 complete
-            </span>
-          </div>
-          <Progress
-            value={completed}
-            max={2}
-            class="rounded-none"
-            aria-label="Vault setup progress"
-            aria-valuetext={completed + " of 2 steps complete"}
-          />
-        </div>
-        <h1 id="setup-heading">Your keyring</h1>
-        <p class="intro-copy">
-          Each device keeps an encrypted copy of your passwords. The only online
-          copy lives in <strong>your own cloud account</strong>, where your
-          devices sync changes.
-        </p>
-      </div>
-      <ol class="steps" aria-label="Setup steps">
+    <div class="setup-intro">
+      <ol class="stepper" aria-label="Setup steps">
         {#each steps as step, i}
-          <li>
-            <Card.Root
-              class="step-card rounded-none shadow-none"
-              data-current={step.enabled}
-              data-complete={step.complete}
-            >
-              <span class="step-number" aria-label={"Step " + (i + 1)}>
-                {i + 1}
+          <li
+            aria-current={memberCount === i ? "step" : undefined}
+            class:done={memberCount > i}
+          >
+            <span class="step-number" aria-hidden="true">
+              {#if memberCount > i}<Check />{:else}{i + 1}{/if}
+            </span>
+            <span>
+              {step}<span class="sr-only">
+                {memberCount > i ? ", complete" : ""}
               </span>
-              <Card.Header class="step-copy">
-                <Card.Title><h2>{step.title}</h2></Card.Title>
-                <Card.Description>{step.description}</Card.Description>
-              </Card.Header>
-              <Card.Footer class="step-action">
-                <Button
-                  bind:ref={controls[i]}
-                  class="step-button rounded-none"
-                  variant={step.enabled ? "default" : "outline"}
-                  disabled={!step.enabled}
-                  aria-busy={i === 1 && !linked && !!transfer}
-                  onclick={step.run}
-                >
-                  <step.icon
-                    class={i === 1 && !linked && transfer ? "spin" : ""}
-                    aria-hidden="true"
-                  />
-                  {step.action}
-                </Button>
-              </Card.Footer>
-            </Card.Root>
+            </span>
           </li>
         {/each}
       </ol>
-    </section>
-  </div>
+      <h1 id="setup-heading">{stages[memberCount].title}</h1>
+      <p class="intro-copy">{stages[memberCount].description}</p>
+    </div>
 
-  <KeyringMap {copies} {transfer} {hopDuration} onReplay={replaySync} />
+    <KeyringMap
+      {copies}
+      {memberCount}
+      {transfer}
+      {hopDuration}
+      onCreate={createVault}
+      onLink={linkDevice}
+      onReplay={replaySync}
+    />
+  </section>
 </main>
