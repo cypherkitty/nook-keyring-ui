@@ -2,15 +2,10 @@
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import Cloud from "@lucide/svelte/icons/cloud";
-  import FileLock from "@lucide/svelte/icons/file-lock";
-  import Laptop from "@lucide/svelte/icons/laptop";
   import Link from "@lucide/svelte/icons/link";
   import Loader from "@lucide/svelte/icons/loader-circle";
-  import Lock from "@lucide/svelte/icons/lock-keyhole";
   import Plus from "@lucide/svelte/icons/plus";
   import Refresh from "@lucide/svelte/icons/refresh-cw";
-  import Phone from "@lucide/svelte/icons/smartphone";
-  import User from "@lucide/svelte/icons/user-round";
 
   let {
     copies,
@@ -21,135 +16,193 @@
     onLink,
     onReplay,
   } = $props();
-  const devices = [
-    { index: 0, name: "This device", icon: Laptop },
-    { index: 2, name: "Second device", icon: Phone },
-  ];
+
   const linked = $derived(memberCount === 2);
-  const storageStatus = $derived(
+  const locations = $derived([
+    {
+      kind: "laptop",
+      control: memberCount === 0 ? "create-vault" : undefined,
+      name: "This device",
+      detail: copies[0] ? "Local copy" : "Create here",
+    },
+    {
+      kind: "folder",
+      name: "Your cloud account",
+      detail: copies[1] ? "Sync copy" : "Sync storage",
+    },
+    {
+      kind: "phone",
+      control: memberCount === 1 && !transfer ? "link-device" : undefined,
+      name: linked ? "Linked device" : "Second device",
+      detail: linked
+        ? "Local copy"
+        : transfer
+          ? "Waiting for copy"
+          : memberCount
+            ? "Ready to link"
+            : "Link next",
+    },
+  ]);
+  const destinations = [
+    "Syncing to this device",
+    "Saving to your cloud account",
+    "Syncing to the second device",
+  ];
+  const status = $derived(
     transfer
-      ? transfer.to === 1
-        ? "Receiving encrypted vault"
-        : transfer.to === 2
-          ? "Syncing to second device"
-          : "Syncing to this device"
+      ? destinations[transfer.to]
       : linked
-        ? "Encrypted copy in sync"
-        : "Syncs encrypted vault copies",
+        ? "2 devices in sync"
+        : memberCount
+          ? "1 device in your cloud"
+          : "",
   );
 </script>
 
+{#snippet vaultTag(outline = false)}
+  <span class="vault-tag" class:outline-tag={outline} aria-hidden="true">
+    <span class="tag-keyhole"></span>
+  </span>
+{/snippet}
+
 <section
   id="sync-map"
-  tabindex="-1"
   class="cloud-builder"
-  aria-labelledby="cloud-heading"
+  tabindex="-1"
+  aria-label="Encrypted vault sync through your own cloud account"
   style={"--hop-time: " + hopDuration + "ms"}
 >
-  <Card.Root
-    class="members rounded-none shadow-none"
-    data-started={memberCount > 0}
-    style={"--joined-fraction: " + memberCount / devices.length}
-  >
-    <Card.Header class="members-heading rounded-none">
-      <h2 id="cloud-heading">Your personal cloud</h2>
-      <span class="member-count" role="status" aria-atomic="true">
-        {memberCount}
-        {memberCount === 1 ? "device" : "devices"}
-      </span>
-    </Card.Header>
-    <Card.Content class="members-content">
-      <ul class="device-slots" aria-label="Devices in your personal cloud">
-        {#each devices as device}
-          {@const stored = copies[device.index] > 0}
-          {@const linking = device.index === 2 && !!transfer && !linked}
-          {@const active =
-            !stored && device.index === (memberCount === 0 ? 0 : 2)}
+  <Card.Root class="vault-map rounded-none shadow-none">
+    <Card.Content class="route-content">
+      <ol class="vault-route" aria-label="Where your vault copies live">
+        {#each locations as location, i}
+          {@const stored = copies[i] > 0}
           <li
-            class="device-slot"
+            class="vault-location"
+            data-kind={location.kind}
             class:stored
-            class:active
-            class:receiving={transfer?.to === device.index}
+            class:upcoming={i > 0 && !memberCount}
+            class:receiving={transfer?.to === i}
           >
-            <span class="device-marker" aria-hidden="true">
-              <device.icon strokeWidth={1.5} />
-              {#if stored}<span class="vault-mark"><Lock /></span>{/if}
-            </span>
-            <h3>{device.name}</h3>
-            <div class="device-action">
-              {#if stored}
-                <span class="device-status">
-                  Encrypted vault<span class="sr-only">
-                    , version {copies[device.index]}
-                  </span>
-                </span>
-              {:else if linking}
-                <span class="device-status linking">
-                  <Loader class="spinner" aria-hidden="true" />Linking…
-                </span>
-              {:else if active}
-                <Button
-                  id={device.index === 0 ? "create-vault" : "link-device"}
-                  class="build-action rounded-none"
-                  onclick={device.index === 0 ? onCreate : onLink}
+            <div class="scene-spot" aria-hidden="true">
+              {#if i < locations.length - 1}
+                {@const moving =
+                  transfer && Math.min(transfer.from, transfer.to) === i}
+                <div
+                  class="journey-leg"
+                  class:connected={stored && copies[i + 1] > 0}
+                  class:moving
                 >
-                  {#if device.index === 0}<Plus aria-hidden="true" />Create
-                    vault{:else}<Link aria-hidden="true" />Link device{/if}
-                </Button>
-              {:else}
-                <span class="device-status">Joins in step 2</span>
+                  <span class="sync-line"></span>
+                  {#if moving}
+                    <span
+                      class="travelling-copy"
+                      class:reverse={transfer.from > transfer.to}
+                    >
+                      {@render vaultTag()}
+                    </span>
+                  {/if}
+                </div>
               {/if}
+              <svelte:element
+                this={location.control ? "label" : "div"}
+                class="location-object"
+                for={location.control}
+                title={location.control
+                  ? i === 0
+                    ? "Create vault on this device"
+                    : "Link through your cloud account"
+                  : undefined}
+              >
+                {#if location.kind === "laptop"}
+                  <span class="laptop">
+                    <span class="laptop-lid">
+                      <span class="screen-slot">
+                        {@render vaultTag(!stored)}
+                      </span>
+                    </span>
+                    <span class="keyboard-deck"></span>
+                  </span>
+                {:else if location.kind === "folder"}
+                  <span class="account-folder">
+                    <span class="folder-back"></span>
+                    <span class="folder-inside"></span>
+                    {#if stored}<span class="folder-copy">
+                        {@render vaultTag()}
+                      </span>{/if}
+                    <span class="folder-pocket">
+                      <Cloud strokeWidth={1.65} />
+                    </span>
+                  </span>
+                {:else}
+                  <span class="phone">
+                    <span class="screen-slot">
+                      {#if stored}{@render vaultTag()}{:else if memberCount}{@render vaultTag(
+                          true,
+                        )}{/if}
+                    </span>
+                  </span>
+                {/if}
+              </svelte:element>
             </div>
+            <h2>{location.name}</h2>
+            <p class="location-detail">
+              {transfer?.to === i ? "Receiving copy" : location.detail}
+              {#if stored}<span class="sr-only">
+                  , encrypted vault version {copies[i]}
+                </span>{/if}
+            </p>
           </li>
         {/each}
-      </ul>
+      </ol>
     </Card.Content>
-  </Card.Root>
 
-  <div class="storage">
-    <div class="bridge" aria-hidden="true">
-      {#each devices as device}
-        <span
-          class="wire"
-          class:right={device.index === 2}
-          class:connected={copies[1] > 0 && copies[device.index] > 0}
-          class:moving={transfer?.from === device.index ||
-            transfer?.to === device.index}
+    <Card.Footer class="map-controls" data-local-step={memberCount === 0}>
+      <div class="vault-identity">
+        <span class="tag-sample" aria-hidden="true">{@render vaultTag()}</span>
+        <div>
+          <h3>Encrypted vault</h3>
+          <p class="sync-status" role="status" aria-atomic="true">
+            {status}{#if linked && !transfer}<span class="sr-only">
+                , vault version {copies[0]}
+              </span>{/if}
+          </p>
+        </div>
+      </div>
+      {#if !memberCount}
+        <Button
+          id="create-vault"
+          aria-label="Create vault"
+          class="map-action rounded-none"
+          onclick={onCreate}
         >
-          {#if transfer?.from === device.index || transfer?.to === device.index}
-            <span class="packet" class:outbound={transfer.from === 1}>
-              <FileLock />
-            </span>
-          {/if}
-        </span>
-      {/each}
-      <span
-        class="storage-marker"
-        class:stored={copies[1] > 0}
-        class:receiving={transfer?.to === 1}
-      >
-        <Cloud strokeWidth={1.55} /><span class="account-mark"><User /></span>
-      </span>
-    </div>
-    <h3>Your cloud account</h3>
-    <p class="storage-status" role="status" aria-atomic="true">
-      {#if copies[1]}<Lock aria-hidden="true" />{/if}{storageStatus}
-      {#if copies[1]}<span class="sr-only">
-          , vault version {copies[1]}
-        </span>{/if}
-    </p>
-    {#if linked}
-      <Button
-        variant="ghost"
-        size="sm"
-        class="replay rounded-none"
-        aria-label="Replay encrypted sync"
-        title="Replay encrypted sync"
-        disabled={!!transfer}
-        onclick={onReplay}
-      >
-        <Refresh aria-hidden="true" /><span>Replay sync</span>
-      </Button>
-    {/if}
-  </div>
+          <Plus aria-hidden="true" />Create vault
+        </Button>
+      {:else if !linked}
+        <Button
+          id="link-device"
+          aria-label={transfer ? "Linking…" : "Link second device"}
+          class="map-action rounded-none"
+          onclick={onLink}
+          disabled={!!transfer}
+          aria-busy={!!transfer}
+        >
+          {#if transfer}<Loader
+              class="spinner"
+              aria-hidden="true"
+            />Linking…{:else}<Link aria-hidden="true" />Link second device{/if}
+        </Button>
+      {:else}
+        <Button
+          variant="outline"
+          class="map-action replay rounded-none"
+          aria-label="Replay encrypted sync"
+          onclick={onReplay}
+          disabled={!!transfer}
+        >
+          <Refresh aria-hidden="true" />Replay sync
+        </Button>
+      {/if}
+    </Card.Footer>
+  </Card.Root>
 </section>
