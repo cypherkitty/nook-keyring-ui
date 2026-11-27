@@ -1,47 +1,26 @@
 <script>
   import { onDestroy, tick } from "svelte";
-  import {
-    Accordion,
-    AccordionItem,
-    Button,
-    ProgressIndicator,
-    ProgressStep,
-  } from "carbon-components-svelte";
-  import { Link2, Plus, RefreshCw, RotateCcw } from "lucide-svelte";
+  import { Button } from "$lib/components/ui/button";
+  import * as Card from "$lib/components/ui/card";
+  import { Progress } from "$lib/components/ui/progress";
+  import Check from "@lucide/svelte/icons/check";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Link from "@lucide/svelte/icons/link";
+  import Loader from "@lucide/svelte/icons/loader-circle";
+  import Restart from "@lucide/svelte/icons/rotate-ccw";
   import KeyringMap from "./KeyringMap.svelte";
 
-  // Zero denotes a planned location. Positive values are copies of a demo revision.
+  // The three entries are this device, the user's cloud, and the linked device.
+  // Zero is an empty location; a positive number is a simulated vault revision.
   let copies = $state([0, 0, 0]);
   let transfer = $state(null);
-  let primaryButton = $state();
-  let storageOpen = $state(true);
+  let controls = $state([null, null]);
   let timers = [];
+  const hopDuration = 850;
   const created = $derived(copies[0] > 0);
   const linked = $derived(copies[2] > 0);
+  const completed = $derived(Number(created) + Number(linked));
   const revision = $derived(Math.max(...copies));
-  const nextSource = $derived(linked && revision % 2 === 0 ? 2 : 0);
-  const stepIndex = $derived(Number(created) + Number(linked));
-  const actionLabel = $derived(
-    transfer
-      ? "Syncing vault"
-      : !created
-        ? "Create local vault"
-        : !linked
-          ? "Link another device"
-          : "Preview a change",
-  );
-  const actionIcon = $derived(!created ? Plus : !linked ? Link2 : RefreshCw);
-  const status = $derived(
-    transfer
-      ? transfer.to === 1
-        ? "Saving to your cloud account"
-        : transfer.to === 0
-          ? "Updating this device"
-          : "Updating your other device"
-      : linked
-        ? "All three copies in sync"
-        : "Saved on this device",
-  );
 
   function clearTimers() {
     timers.forEach(clearTimeout);
@@ -49,190 +28,178 @@
   }
   onDestroy(clearTimers);
 
-  async function reset() {
+  async function restart() {
     clearTimers();
     transfer = null;
     copies = [0, 0, 0];
-    storageOpen = true;
     await tick();
-    primaryButton?.focus();
+    controls[0]?.focus({ preventScroll: true });
+  }
+
+  async function createVault() {
+    if (created) return;
+    copies[0] = 1;
+    await tick();
+    controls[1]?.focus({ preventScroll: true });
   }
 
   function sendCopy(source, target, version) {
-    const receive = () => {
-      copies[target] = version;
-      transfer = null;
-      timers = [];
-    };
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       copies[1] = version;
-      receive();
+      copies[target] = version;
       return;
     }
-    transfer = { source, from: source, to: 1 };
+    transfer = { from: source, to: 1 };
     timers = [
       setTimeout(() => {
         copies[1] = version;
-        transfer = { source, from: 1, to: target };
-      }, 650),
-      setTimeout(receive, 1300),
+        transfer = { from: 1, to: target };
+      }, hopDuration),
+      setTimeout(() => {
+        copies[target] = version;
+        transfer = null;
+        timers = [];
+      }, hopDuration * 2),
     ];
   }
 
-  function advance() {
-    if (transfer) return;
-    if (!created) {
-      copies[0] = 1;
-    } else if (!linked) {
-      sendCopy(0, 2, copies[0]);
-    } else {
-      const source = nextSource;
-      const version = revision + 1;
-      copies[source] = version;
-      sendCopy(source, 2 - source, version);
-    }
+  async function linkDevice() {
+    if (!created || linked || transfer) return;
+    sendCopy(0, 2, copies[0]);
+    await tick();
+    const diagram = document.getElementById("sync-map");
+    diagram.focus({ preventScroll: true });
+    diagram.scrollIntoView({ block: "nearest" });
   }
+
+  function replaySync() {
+    if (!linked || transfer) return;
+    const source = revision % 2 === 1 ? 0 : 2;
+    const version = revision + 1;
+    copies[source] = version;
+    sendCopy(source, 2 - source, version);
+  }
+
+  const steps = $derived([
+    {
+      title: "Create your vault",
+      description: "Store it on this device.",
+      action: created ? "Vault created" : "Create vault",
+      icon: created ? Check : Plus,
+      complete: created,
+      enabled: !created,
+      run: createVault,
+    },
+    {
+      title: "Link another device",
+      description: "Connect your cloud account.",
+      action: linked ? "Device linked" : transfer ? "Linking…" : "Link device",
+      icon: linked ? Check : transfer ? Loader : Link,
+      complete: linked,
+      enabled: created && !linked && !transfer,
+      run: linkDevice,
+    },
+  ]);
 </script>
 
-<header class="masthead">
-  <div class="masthead-inner">
-    <div class="identity">
-      <div class="wordmark" aria-label="Nook">
-        <img src="/nook.svg" alt="" />nook
-      </div>
-      <span class="product-type">Local-first password manager</span>
+<header class="site-header">
+  <div class="frame header-inner">
+    <div class="brand">
+      <span class="wordmark">
+        <img src="/nook.svg" alt="" width="28" height="28" />nook
+      </span>
+      <span class="brand-caption">Local-first password manager</span>
     </div>
-    <div class="preview-controls">
-      {#if created}
-        <Button
-          kind="ghost"
-          size="sm"
-          class="reset-button"
-          icon={RotateCcw}
-          on:click={reset}
-        >
-          Reset preview
-        </Button>
-      {:else}
-        <span class="preview-label">Interactive preview</span>
-      {/if}
-    </div>
+    {#if created}
+      <Button
+        variant="ghost"
+        size="sm"
+        class="restart rounded-none"
+        onclick={restart}
+      >
+        <Restart aria-hidden="true" />Restart preview
+      </Button>
+    {:else}
+      <span class="preview-label">Preview</span>
+    {/if}
   </div>
 </header>
 
-<main class="workspace">
-  <div class="workbench">
-    <section class="setup" aria-labelledby="setup-title">
-      <div
-        role="progressbar"
-        aria-label="Vault setup"
-        aria-valuemin="0"
-        aria-valuemax="2"
-        aria-valuenow={stepIndex}
-        aria-valuetext={linked
-          ? "Setup complete"
-          : created
-            ? "Step 2 of 2, link another device"
-            : "Step 1 of 2, create a local vault"}
-      >
-        <ProgressIndicator
-          currentIndex={stepIndex}
-          spaceEqually
-          preventChangeOnClick
-          inert
-        >
-          <ProgressStep
-            label="Local vault"
-            description="Create a vault on this device"
-            complete={created}
+<main class="frame">
+  <div class="hero">
+    <figure class="hero-art">
+      <picture>
+        <source media="(max-width: 680px)" srcset="/keyring/vault-ring.webp" />
+        <img
+          src="/keyring/keyring-original.png"
+          width="1448"
+          height="1086"
+          fetchpriority="high"
+          alt="A steel keyring holding an orange keyhole tag, a brushed silver tag, and a graphite tag."
+        />
+      </picture>
+    </figure>
+
+    <section class="setup" aria-labelledby="setup-heading">
+      <div class="setup-intro">
+        <div class="setup-progress">
+          <div class="progress-label">
+            <span>Vault setup</span><span>
+              {completed} of 2 complete
+            </span>
+          </div>
+          <Progress
+            value={completed}
+            max={2}
+            class="rounded-none"
+            aria-label="Vault setup progress"
+            aria-valuetext={completed + " of 2 steps complete"}
           />
-          <ProgressStep
-            label="Link device"
-            description="Link another device through your cloud account"
-            complete={linked}
-          />
-        </ProgressIndicator>
+        </div>
+        <h1 id="setup-heading">Your keyring</h1>
+        <p class="intro-copy">
+          Each device keeps an encrypted copy of your passwords. The only online
+          copy lives in <strong>your own cloud account</strong>, where your
+          devices sync changes.
+        </p>
       </div>
-
-      <div class="step-content">
-        {#if !created}
-          <h1 id="setup-title">Start on <span>this device.</span></h1>
-          <p>
-            Create an encrypted vault for the passwords you save here. You can
-            link a second device whenever you’re ready.
-          </p>
-        {:else if !linked}
-          <h1 id="setup-title">Link another <span>device.</span></h1>
-          <p>
-            Connect both devices to the same cloud account. Each device keeps an
-            encrypted copy of your vault.
-          </p>
-        {:else}
-          <h1 id="setup-title">Your devices <span>are linked.</span></h1>
-          <p>
-            Preview a password change on {(transfer?.source ?? nextSource) === 0
-              ? "this device"
-              : "your other device"}. Follow the update through your cloud
-            account.
-          </p>
-        {/if}
-        <Button
-          class="main-action"
-          icon={actionIcon}
-          loading={!!transfer}
-          bind:ref={primaryButton}
-          on:click={advance}
-        >
-          {actionLabel}
-        </Button>
-      </div>
+      <ol class="steps" aria-label="Setup steps">
+        {#each steps as step, i}
+          <li>
+            <Card.Root
+              class="step-card rounded-none shadow-none"
+              data-current={step.enabled}
+              data-complete={step.complete}
+            >
+              <span class="step-number" aria-label={"Step " + (i + 1)}>
+                {i + 1}
+              </span>
+              <Card.Header class="step-copy">
+                <Card.Title><h2>{step.title}</h2></Card.Title>
+                <Card.Description>{step.description}</Card.Description>
+              </Card.Header>
+              <Card.Footer class="step-action">
+                <Button
+                  bind:ref={controls[i]}
+                  class="step-button rounded-none"
+                  variant={step.enabled ? "default" : "outline"}
+                  disabled={!step.enabled}
+                  aria-busy={i === 1 && !linked && !!transfer}
+                  onclick={step.run}
+                >
+                  <step.icon
+                    class={i === 1 && !linked && transfer ? "spin" : ""}
+                    aria-hidden="true"
+                  />
+                  {step.action}
+                </Button>
+              </Card.Footer>
+            </Card.Root>
+          </li>
+        {/each}
+      </ol>
     </section>
-
-    <section
-      class="visual"
-      class:has-vault={created}
-      aria-labelledby="keyring-title"
-    >
-      <img
-        class="vault-art"
-        src="/keyring/vault-ring.webp"
-        alt=""
-        fetchpriority="high"
-      />
-      <div class="visual-bar">
-        <h2 id="keyring-title">Your keyring</h2>
-        <span class="device-count" class:has-copy={created}>
-          {stepIndex}
-          {stepIndex === 1 ? "device" : "devices"}
-        </span>
-      </div>
-      <div
-        class="vault-readout"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {#if created}
-          <span class="revision">Vault v{revision}</span>
-          <span>{status}</span>
-        {/if}
-      </div>
-    </section>
-
-    <KeyringMap {copies} {transfer} />
-
-    <aside class="ownership" aria-label="Cloud storage">
-      <Accordion align="end">
-        <AccordionItem
-          title="Who stores the synced vault?"
-          bind:open={storageOpen}
-        >
-          <p>
-            With Nook, <strong>your own cloud account</strong> holds the encrypted
-            copy. A hosted password manager keeps that copy on its servers.
-          </p>
-        </AccordionItem>
-      </Accordion>
-    </aside>
   </div>
+
+  <KeyringMap {copies} {transfer} {hopDuration} onReplay={replaySync} />
 </main>
