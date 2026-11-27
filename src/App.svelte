@@ -1,95 +1,106 @@
 <script>
-  import { tick } from "svelte";
-  import {
-    Check,
-    Cloud,
-    Laptop,
-    Link2,
-    LockKeyhole,
-    Plus,
-    RotateCcw,
-    Smartphone,
-  } from "lucide-svelte";
+  import { onDestroy, tick } from "svelte";
+  import { Check, Link2, Plus, RefreshCw, RotateCcw } from "lucide-svelte";
   import KeyringMap from "./KeyringMap.svelte";
 
-  const locations = [
-    {
-      id: "local",
-      name: "This device",
-      icon: Laptop,
-      image: "/keyring/local.webp",
-      alt: "An exploded metal vault with a keyhole plate above its illuminated glass core.",
-      title: ["Your local", "vault."],
-      description:
-        "Keep your passwords encrypted on this device. Your own cloud account syncs changes to your other device.",
-    },
-    {
-      id: "cloud",
-      name: "Your cloud account",
-      icon: Cloud,
-      image: "/keyring/cloud-sync.webp",
-      alt: "A locked vault file floats in your cloud above a laptop and phone. Violet paths connect each local copy to the cloud copy.",
-      title: ["Your own", "cloud account."],
-      description:
-        "Your cloud account stores an encrypted vault copy. Password changes pass through it between your devices.",
-    },
-    {
-      id: "other",
-      name: "Other device",
-      icon: Smartphone,
-      image: "/keyring/other.webp",
-      alt: "A phone holding the same illuminated keyhole vault in its screen.",
-      title: ["Your other", "device."],
-      description:
-        "A second device keeps its own encrypted copy. It uses the same cloud account to sync password changes.",
-    },
-  ];
-
-  let stage = $state("empty");
-  let selectedId = $state("local");
-  let heading = $state();
-  const selected = $derived(
-    locations.find((location) => location.id === selectedId),
+  // A zero is a planned location. Positive values identify the demo vault revision.
+  let copies = $state([0, 0, 0]);
+  let transfer = $state(null);
+  let primaryButton = $state();
+  let timers = [];
+  const created = $derived(copies[0] > 0);
+  const linked = $derived(copies[2] > 0);
+  const revision = $derived(Math.max(...copies));
+  const nextSource = $derived(linked && revision % 2 === 0 ? 2 : 0);
+  const actionNode = $derived(
+    created && !linked ? 2 : (transfer?.source ?? nextSource),
   );
-  const title = $derived.by(() => {
-    if (selectedId === "local" && stage === "empty")
-      return ["Create your", "local vault."];
-    if (selectedId === "cloud" && stage === "local")
-      return ["Link your", "next device."];
-    if (selectedId === "other" && stage === "linked")
-      return ["Your devices", "are linked."];
-    return selected.title;
-  });
-  const description = $derived.by(() => {
-    if (selectedId === "cloud" && stage === "local")
-      return "Use your own cloud account on both devices. It holds an encrypted copy and keeps your passwords in sync.";
-    if (selectedId === "other" && stage === "linked")
-      return "Both devices now keep an encrypted vault. Change a password on either one and it syncs through your cloud account.";
-    return selected.description;
-  });
 
-  function inspect(id) {
-    selectedId = id;
+  function clearTimers() {
+    timers.forEach(clearTimeout);
+    timers = [];
   }
+  onDestroy(clearTimers);
 
-  async function navigateTo(id) {
-    inspect(id);
+  async function reset() {
+    clearTimers();
+    transfer = null;
+    copies = [0, 0, 0];
     await tick();
-    heading.focus({ preventScroll: true });
+    primaryButton?.focus();
   }
 
-  function createVault() {
-    stage = "local";
-    navigateTo("cloud");
+  function sendCopy(source, target, version) {
+    const receive = () => {
+      copies[target] = version;
+      transfer = null;
+      timers = [];
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      copies[1] = version;
+      receive();
+      return;
+    }
+    transfer = { source, from: source, to: 1 };
+    timers = [
+      setTimeout(() => {
+        copies[1] = version;
+        transfer = { source, from: 1, to: target };
+      }, 650),
+      setTimeout(receive, 1300),
+    ];
   }
-  function linkDevice() {
-    stage = "linked";
-    navigateTo("other");
+
+  function advance() {
+    if (transfer) return;
+    if (!created) {
+      copies[0] = 1;
+      return;
+    }
+    if (!linked) {
+      sendCopy(0, 2, copies[0]);
+      return;
+    }
+    const source = nextSource;
+    const version = revision + 1;
+    copies[source] = version;
+    sendCopy(source, 2 - source, version);
   }
-  function reset() {
-    stage = "empty";
-    navigateTo("local");
-  }
+
+  const title = $derived(
+    !created
+      ? "Create your local vault."
+      : !linked
+        ? "Add your next device."
+        : "Your vault is in sync.",
+  );
+  const explanation = $derived(
+    !created
+      ? "Save your passwords on this device. Your own cloud account syncs an encrypted copy when you link another device."
+      : !linked
+        ? "Use the same cloud account on both devices. Each keeps an encrypted copy of the same vault."
+        : "Preview a password change and follow the updated copy from one device to the other.",
+  );
+  const actionLabel = $derived(
+    transfer
+      ? "Syncing…"
+      : !created
+        ? "Create vault"
+        : !linked
+          ? "Link device"
+          : "Preview a change",
+  );
+  const status = $derived(
+    transfer
+      ? transfer.to === 1
+        ? "Sending the encrypted copy to your cloud account."
+        : "Delivering the copy to the other device."
+      : !created
+        ? "Create the first copy on this device."
+        : !linked
+          ? "Local vault created. Ready to link your other device."
+          : `All three locations have vault version ${revision}.`,
+  );
 </script>
 
 <header class="masthead">
@@ -99,86 +110,51 @@
     </div>
     <span class="descriptor">Local-first password manager</span>
   </div>
-  {#if stage === "empty" && selectedId === "local"}
-    <small class="preview-label">Interactive preview</small>
-  {:else}
+  {#if created}
     <button class="reset" onclick={reset}>
       <RotateCcw size={14} aria-hidden="true" />Reset preview
     </button>
+  {:else}
+    <small class="preview-label">Interactive preview</small>
   {/if}
 </header>
 
 <main>
-  <div class="workspace">
-    <KeyringMap {locations} {stage} {selectedId} onInspect={inspect} />
-
-    <div
-      class="inspector"
-      id="location-panel"
-      role="tabpanel"
-      aria-labelledby={"tab-" + selectedId}
-    >
-      <div class="panel-bar">
-        <div class="context">
-          <selected.icon
-            size={17}
-            strokeWidth={1.6}
-            aria-hidden="true"
-          />{selected.name}
-        </div>
-        <span class="annotation">
-          <LockKeyhole size={13} aria-hidden="true" />Encrypted vault
-        </span>
-      </div>
-      <div class="artifact">
-        {#each locations as location}
-          <img
-            class:visible={selectedId === location.id}
-            class="render"
-            class:cloud-scene={location.id === "cloud"}
-            src={location.image}
-            alt={selectedId === location.id ? location.alt : ""}
-            aria-hidden={selectedId !== location.id}
-            width="1280"
-            height="960"
-            decoding="async"
-          />
-        {/each}
-      </div>
-
-      <div class="detail">
-        <h1 tabindex="-1" bind:this={heading}>
-          {title[0]} <em>{title[1]}</em>
-        </h1>
-        <p>{description}</p>
-        <div class="action">
-          {#if stage === "empty"}
-            {#if selectedId === "local"}
-              <button class="primary" onclick={createVault}>
-                <Plus size={18} />Create vault
-              </button>
-            {:else}
-              <button class="primary" onclick={() => navigateTo("local")}>
-                <Laptop size={17} />Start on this device
-              </button>
-            {/if}
-          {:else if stage === "local"}
-            {#if selectedId === "local"}
-              <button class="primary" onclick={() => navigateTo("cloud")}>
-                <Link2 size={17} />Add another device
-              </button>
-            {:else}
-              <button class="primary" onclick={linkDevice}>
-                <Link2 size={17} />Link device
-              </button>
-            {/if}
-          {:else}
-            <span class="synced">
-              <Check size={17} aria-hidden="true" />Devices in sync
-            </span>
-          {/if}
-        </div>
-      </div>
+  <div class="introduction">
+    <div class="phase">
+      {#if linked}<Check size={15} aria-hidden="true" />Devices linked{:else}<span
+          class="step-bars"
+          aria-hidden="true"
+        >
+          <i></i><i class:active={created}></i>
+        </span>Step {created ? "2" : "1"} of 2{/if}
     </div>
+    <h1>{transfer && linked ? "Updating your vault." : title}</h1>
+    <p>{explanation}</p>
   </div>
+
+  <section class="sheet" aria-labelledby="map-title">
+    <div class="sheet-header">
+      <h2 id="map-title">Your keyring</h2>
+      <span class="legend">
+        <span class="legend-file" aria-hidden="true"></span>Encrypted vault
+      </span>
+    </div>
+    <KeyringMap {copies} {transfer} {actionNode}>
+      {#snippet action()}
+        <button
+          bind:this={primaryButton}
+          class="primary"
+          aria-disabled={!!transfer}
+          onclick={advance}
+        >
+          {#if !created}<Plus size={16} aria-hidden="true" />
+          {:else if !linked}<Link2 size={16} aria-hidden="true" />
+          {:else}<RefreshCw size={15} aria-hidden="true" />{/if}
+          {actionLabel}
+        </button>
+      {/snippet}
+    </KeyringMap>
+  </section>
+  <p class="sr-only" role="status" aria-live="polite">{status}</p>
 </main>
