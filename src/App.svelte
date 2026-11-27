@@ -1,95 +1,74 @@
 <script>
-  import { onDestroy, tick } from "svelte";
+  import { tick } from "svelte";
   import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import * as Card from "$lib/components/ui/card";
   import Check from "@lucide/svelte/icons/check";
+  import Cloud from "@lucide/svelte/icons/cloud";
+  import HardDrive from "@lucide/svelte/icons/hard-drive";
+  import KeyRound from "@lucide/svelte/icons/key-round";
+  import Link from "@lucide/svelte/icons/link";
+  import Lock from "@lucide/svelte/icons/lock-keyhole";
+  import Devices from "@lucide/svelte/icons/monitor-smartphone";
+  import Plus from "@lucide/svelte/icons/plus";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
-  import KeyringMap from "./KeyringMap.svelte";
+  import Phone from "@lucide/svelte/icons/smartphone";
+  import CloudAccount from "./CloudAccount.svelte";
 
-  // Device, storage account, second device. A positive revision is a vault copy.
-  let copies = $state([0, 0, 0]);
-  let transfer = $state(null);
-  let timers = [];
-  const hopDuration = 1050;
-  const created = $derived(copies[0] > 0);
-  const linked = $derived(copies[2] > 0);
-  const memberCount = $derived(Number(created) + Number(linked));
-  const revision = $derived(Math.max(...copies));
-
-  const stages = [
-    {
-      title: "Build your personal cloud",
-      description:
-        "Your devices form your cloud. Each keeps an encrypted password vault, and your own storage account keeps them in sync.",
-    },
-    {
-      title: "Add your second device",
-      description:
-        "This device now holds your vault. Link another through your own cloud storage to give it an encrypted copy.",
-    },
-    {
-      title: "Your cloud is ready",
-      description:
-        "Both devices keep your encrypted vault. Your storage account holds the only online copy and keeps them in sync.",
-    },
-  ];
+  // Only the preview's display names are kept in memory.
+  let vault = $state("");
+  let account = $state("");
+  let linkedDevice = $state("");
+  let vaultDraft = $state("Personal vault");
+  let deviceDraft = $state("My phone");
+  let heading;
   const steps = ["Create vault", "Link device"];
+  const namePattern = ".*\\S.*";
+  const title = $derived(
+    linkedDevice
+      ? vault
+      : account
+        ? "New device request"
+        : vault
+          ? "Link another device"
+          : "Create your vault",
+  );
 
-  function clearTimers() {
-    timers.forEach(clearTimeout);
-    timers = [];
+  async function focusHeading() {
+    await tick();
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: "nearest" });
   }
-  onDestroy(clearTimers);
+
+  function createVault(event) {
+    event.preventDefault();
+    if (vault) return;
+    vault = vaultDraft.trim();
+    focusHeading();
+  }
+
+  function connectAccount(email) {
+    if (account !== email) deviceDraft = "My phone";
+    account = email;
+  }
+
+  function approveDevice(event) {
+    event.preventDefault();
+    if (!account || linkedDevice) return;
+    linkedDevice = deviceDraft.trim();
+    focusHeading();
+  }
 
   async function restart() {
-    clearTimers();
-    transfer = null;
-    copies = [0, 0, 0];
+    vault = "";
+    account = "";
+    linkedDevice = "";
+    vaultDraft = "Personal vault";
+    deviceDraft = "My phone";
     await tick();
-    document.getElementById("create-vault")?.focus();
-  }
-
-  async function createVault() {
-    if (created) return;
-    copies[0] = 1;
-    await tick();
-    document.getElementById("link-device")?.focus({ preventScroll: true });
-  }
-
-  function sendCopy(source, target, version) {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      copies[1] = version;
-      copies[target] = version;
-      return;
-    }
-    transfer = { from: source, to: 1 };
-    timers = [
-      setTimeout(() => {
-        copies[1] = version;
-        transfer = { from: 1, to: target };
-      }, hopDuration),
-      setTimeout(() => {
-        copies[target] = version;
-        transfer = null;
-        timers = [];
-      }, hopDuration * 2),
-    ];
-  }
-
-  async function linkDevice() {
-    if (!created || linked || transfer) return;
-    sendCopy(0, 2, copies[0]);
-    await tick();
-    const diagram = document.getElementById("sync-map");
-    diagram.focus({ preventScroll: true });
-    diagram.scrollIntoView({ block: "nearest" });
-  }
-
-  function replaySync() {
-    if (!linked || transfer) return;
-    const source = revision % 2 === 1 ? 0 : 2;
-    const version = revision + 1;
-    copies[source] = version;
-    sendCopy(source, 2 - source, version);
+    const input = document.getElementById("vault-name");
+    input?.focus();
+    input?.select();
   }
 </script>
 
@@ -101,7 +80,7 @@
       </span>
       <span class="brand-caption">Local-first password manager</span>
     </div>
-    {#if created}
+    {#if vault}
       <Button
         variant="ghost"
         size="sm"
@@ -111,7 +90,7 @@
         <Restart aria-hidden="true" />Restart preview
       </Button>
     {:else}
-      <span class="preview-label">Preview</span>
+      <span class="preview-label">Setup preview</span>
     {/if}
   </div>
 </header>
@@ -131,36 +110,129 @@
       </picture>
     </figure>
 
-    <div class="setup-intro">
-      <ol class="stepper" aria-label="Setup steps">
-        {#each steps as step, i}
-          <li
-            aria-current={memberCount === i ? "step" : undefined}
-            class:done={memberCount > i}
-          >
-            <span class="step-number" aria-hidden="true">
-              {#if memberCount > i}<Check />{:else}{i + 1}{/if}
-            </span>
-            <span>
-              {step}<span class="sr-only">
-                {memberCount > i ? ", complete" : ""}
-              </span>
-            </span>
-          </li>
-        {/each}
-      </ol>
-      <h1 id="setup-heading">{stages[memberCount].title}</h1>
-      <p class="intro-copy">{stages[memberCount].description}</p>
-    </div>
+    <Card.Root class="setup-panel rounded-none shadow-none">
+      <Card.Header class="panel-header rounded-none">
+        {#if linkedDevice}
+          <div class="keyring-bar">
+            <span><KeyRound aria-hidden="true" />Your keyring</span>
+            <span class="synced"><Check aria-hidden="true" />In sync</span>
+          </div>
+        {:else}
+          <ol class="stepper" aria-label="Setup steps">
+            {#each steps as step, i}
+              {@const current = i === (vault ? 1 : 0)}
+              {@const done = !!vault && i === 0}
+              <li aria-current={current ? "step" : undefined} class:done>
+                <span class="step-number" aria-hidden="true">
+                  {#if done}<Check />{:else}{i + 1}{/if}
+                </span>
+                <span>
+                  {step}{#if done}<span class="sr-only">, complete</span>{/if}
+                </span>
+              </li>
+            {/each}
+          </ol>
+        {/if}
+      </Card.Header>
 
-    <KeyringMap
-      {copies}
-      {memberCount}
-      {transfer}
-      {hopDuration}
-      onCreate={createVault}
-      onLink={linkDevice}
-      onReplay={replaySync}
-    />
+      <Card.Content class="panel-body">
+        <h1 id="setup-heading" bind:this={heading} tabindex="-1">{title}</h1>
+        {#if !vault}
+          <form class="setup-form" onsubmit={createVault}>
+            <div class="field">
+              <label for="vault-name">Vault name</label>
+              <Input
+                id="vault-name"
+                class="setup-input rounded-none"
+                bind:value={vaultDraft}
+                autocomplete="off"
+                required
+                pattern={namePattern}
+                title="Enter a vault name"
+              />
+            </div>
+            <div class="storage-setting">
+              <span><HardDrive aria-hidden="true" />This device</span>
+              <span class="row-state">
+                <Lock aria-hidden="true" />Encrypted
+              </span>
+            </div>
+            <Button type="submit" class="primary-action rounded-none">
+              <Plus aria-hidden="true" />Create vault
+            </Button>
+          </form>
+        {:else if linkedDevice}
+          <section class="roster" aria-labelledby="devices-heading">
+            <h2 id="devices-heading">Devices <span class="count">2</span></h2>
+            <ul class="device-list">
+              <li>
+                <span class="row-icon"><Devices aria-hidden="true" /></span>
+                <strong>This device</strong>
+                <span class="row-state">
+                  <Lock aria-hidden="true" />Local copy
+                </span>
+              </li>
+              <li>
+                <span class="row-icon"><Phone aria-hidden="true" /></span>
+                <strong>{linkedDevice}</strong>
+                <span class="row-state">
+                  <Lock aria-hidden="true" />Local copy
+                </span>
+              </li>
+            </ul>
+          </section>
+          <section class="sync-account" aria-labelledby="sync-account-heading">
+            <h2 id="sync-account-heading">Cloud sync</h2>
+            <div class="storage-record">
+              <span class="row-icon"><Cloud aria-hidden="true" /></span>
+              <strong>{account}</strong>
+              <span class="row-state">
+                <Lock aria-hidden="true" />Encrypted copy
+              </span>
+            </div>
+          </section>
+        {:else}
+          {#if !account}
+            <div class="vault-receipt">
+              <span class="vault-stamp"><Lock aria-hidden="true" /></span>
+              <div class="identity">
+                <strong>{vault}</strong>
+                <span class="receipt-detail">
+                  <Check aria-hidden="true" />Created on this device
+                </span>
+              </div>
+            </div>
+          {/if}
+          <CloudAccount
+            {account}
+            vaultName={vault}
+            onConnect={connectAccount}
+            focusNext={focusHeading}
+          />
+          {#if account}
+            <form class="setup-form approval-form" onsubmit={approveDevice}>
+              <div class="field">
+                <label for="device-name">Name in your keyring</label>
+                <div class="device-field">
+                  <Phone aria-hidden="true" />
+                  <Input
+                    id="device-name"
+                    class="setup-input rounded-none"
+                    bind:value={deviceDraft}
+                    autocomplete="off"
+                    required
+                    pattern={namePattern}
+                    title="Enter a device name"
+                  />
+                </div>
+              </div>
+              <Button type="submit" class="primary-action rounded-none">
+                <Link aria-hidden="true" />Add to keyring
+              </Button>
+            </form>
+          {/if}
+        {/if}
+      </Card.Content>
+    </Card.Root>
   </section>
 </main>
