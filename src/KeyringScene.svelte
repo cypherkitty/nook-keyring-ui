@@ -1,10 +1,11 @@
 <script>
   let { stage } = $props();
+  const artwork = import.meta.env.BASE_URL + "keyring/";
   const frames = [
-    { stage: "ready", src: "/keyring/ready.webp" },
-    { stage: "local", src: "/keyring/local-vault.webp" },
-    { stage: "cloud", src: "/keyring/cloud-copy.webp" },
-    { stage: "linked", src: "/keyring/keyring-original.png" },
+    { stage: "ready", src: artwork + "ready.webp" },
+    { stage: "local", src: artwork + "local-vault.webp" },
+    { stage: "cloud", src: artwork + "cloud-copy.webp" },
+    { stage: "linked", src: artwork + "keyring-original.png" },
   ];
 </script>
 
@@ -28,7 +29,7 @@
     >
       {#if frame.stage === "linked"}<source
           media="(max-width: 680px)"
-          srcset="/keyring/vault-ring.webp"
+          srcset={artwork + "vault-ring.webp"}
         />{/if}
       <img
         src={frame.src}

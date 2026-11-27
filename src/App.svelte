@@ -111,7 +111,7 @@
   <div class="header-inner">
     <div class="brand">
       <span class="wordmark">
-        <img src="/nook.svg" alt="" width="23" height="23" />nook
+        <img src={import.meta.env.BASE_URL + "nook.svg"} alt="" width="23" height="23" />nook
       </span>
       <span class="brand-purpose">Local-first password manager</span>
     </div>
