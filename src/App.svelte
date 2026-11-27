@@ -1,14 +1,18 @@
 <script>
   import { tick } from "svelte";
   import Check from "@lucide/svelte/icons/check";
-  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Cloud from "@lucide/svelte/icons/cloud";
+  import KeyRound from "@lucide/svelte/icons/key-round";
+  import Laptop from "@lucide/svelte/icons/laptop";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import * as Card from "$lib/components/ui/card";
   import KeyringScene from "./KeyringScene.svelte";
+  import VaultMilestones from "./VaultMilestones.svelte";
   import SetupDialog from "./SetupDialog.svelte";
 
-  // Only the setup labels live in this preview session.
+  // Only the labels for this preview session are kept in memory.
   let vault = $state("");
   let account = $state("");
   let device = $state("");
@@ -23,27 +27,41 @@
   const stage = $derived(
     !vault ? "ready" : !account ? "local" : !device ? "cloud" : "linked",
   );
-  const story = {
+  const members = $derived(Number(!!vault) + Number(!!device));
+  const instructions = {
     ready: {
-      title: "Build your keyring.",
-      hint: "Save passwords here. Sync an encrypted copy through your own cloud.",
+      icon: Laptop,
+      step: "Step 1 of 2",
+      title: "Create your local vault",
+      detail: "Encrypt your passwords on this device.",
     },
     local: {
-      title: "Your vault is on this device.",
-      hint: "Connect your own cloud so your next device can get an encrypted copy.",
+      icon: Check,
+      step: "Step 2 of 2 · Link another device",
+      title: "Your local vault is ready",
+      detail: "Connect your own cloud account to sync an encrypted copy.",
     },
     cloud: {
-      title: "Your cloud has an encrypted copy.",
-      hint: "Open Nook on your second device with the same cloud account to join.",
+      icon: Cloud,
+      step: "Step 2 of 2 · Link another device",
+      title: "Your cloud copy is ready",
+      detail: "Join from your second device with the same cloud account.",
     },
-    linked: { title: "Your devices are in sync." },
+    linked: {
+      icon: Check,
+      step: "Setup complete",
+      title: "Your devices are in sync",
+    },
   };
+  const current = $derived(instructions[stage]);
 
   async function showResult() {
     await tick();
-    heading?.focus({ preventScroll: true });
-    if (heading && heading.getBoundingClientRect().top < 0) {
-      heading.scrollIntoView({ block: "start", behavior: "instant" });
+    if (!heading) return;
+    heading.focus({ preventScroll: true });
+    const bounds = heading.getBoundingClientRect();
+    if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
+      heading.scrollIntoView({ block: "nearest", behavior: "instant" });
     }
   }
 
@@ -105,7 +123,7 @@
         onclick={restart}
       >
         <Restart aria-hidden="true" /><span>
-          Restart<span class="preview-word"> preview</span>
+          Restart<span class="preview-word">{" preview"}</span>
         </span>
       </Button>
     {:else}
@@ -114,57 +132,58 @@
   </div>
 </header>
 
-<main class="workbench" data-stage={stage} aria-labelledby="setup-heading">
-  <ol class="chapters" aria-label="Keyring setup progress">
-    <li
-      class:current={!vault}
-      class:done={!!vault}
-      aria-current={!vault ? "step" : undefined}
-    >
-      <span class="chapter-mark">
-        {#if vault}<Check aria-label="Completed" />{:else}1{/if}
-      </span>
-      {vault ? "Vault created" : "Create vault"}
-    </li>
-    <li
-      class:current={!!vault && !device}
-      class:done={!!device}
-      aria-current={vault && !device ? "step" : undefined}
-    >
-      <span class="chapter-mark">
-        {#if device}<Check aria-label="Completed" />{:else}2{/if}
-      </span>
-      {device ? "Device linked" : "Link a device"}
-    </li>
-  </ol>
-  <div class="story">
-    <h1
-      id="setup-heading"
-      bind:this={heading}
-      tabindex="-1"
-      aria-describedby={story[stage].hint ? "journey-hint" : undefined}
-    >
-      {story[stage].title}
-    </h1>
-    {#if story[stage].hint}<p id="journey-hint">{story[stage].hint}</p>{/if}
+<main class="workbench" data-stage={stage} aria-labelledby="vault-heading">
+  <div class="hero">
+    <div class="hero-copy">
+      <h1 id="vault-heading" title={vault || undefined}>
+        {vault || "Set up your password vault"}
+      </h1>
+      <p>
+        {vault
+          ? "Linked devices sync your encrypted vault through your own cloud account."
+          : "Create a local vault, then link a second device through your own cloud account."}
+      </p>
+      <div class="member-count">
+        <KeyRound aria-hidden="true" />{members}
+        {members === 1 ? "device" : "devices"} on your keyring
+      </div>
+    </div>
+    <KeyringScene {stage} />
   </div>
 
-  <KeyringScene
-    {vault}
-    {account}
-    {device}
-    {stage}
-    onEdit={(trigger) => openSetup("cloud", trigger)}
+  <Card.Root
+    class="setup-panel rounded-none"
+    role="region"
+    aria-label="Keyring setup progress"
   >
-    {#snippet controls()}
+    <div class="readiness">
+      <div class="readiness-message">
+        <span class="summary-icon" aria-hidden="true">
+          <current.icon strokeWidth={1.7} />
+        </span>
+        <div class="summary-copy">
+          <span class="chapter" id="setup-step">{current.step}</span>
+          <h2
+            id="setup-task"
+            bind:this={heading}
+            tabindex="-1"
+            aria-describedby={current.detail
+              ? "setup-step setup-reason"
+              : "setup-step"}
+          >
+            {current.title}
+          </h2>
+          {#if current.detail}<p id="setup-reason">{current.detail}</p>{/if}
+        </div>
+      </div>
       {#if stage === "ready"}
         <form
-          class="inline-form"
-          onsubmit={createVault}
+          class="action-form"
           aria-label="Create a vault on this device"
+          onsubmit={createVault}
         >
-          <label for="vault-name">Vault name</label>
-          <div class="input-action">
+          <div class="field">
+            <label for="vault-name">Vault name</label>
             <Input
               id="vault-name"
               class="setup-input rounded-none"
@@ -174,19 +193,19 @@
               required
               autocomplete="off"
             />
-            <Button type="submit" class="action rounded-none">
-              Create vault<ArrowRight aria-hidden="true" />
-            </Button>
           </div>
+          <Button type="submit" class="action rounded-none">
+            Create vault
+          </Button>
         </form>
       {:else if stage === "local"}
         <form
-          class="inline-form"
+          class="action-form"
+          aria-label="Connect your own cloud account"
           onsubmit={connectAccount}
-          aria-label="Connect your cloud account"
         >
-          <label for="cloud-email">Account email</label>
-          <div class="input-action">
+          <div class="field">
+            <label for="cloud-email">Cloud account email</label>
             <Input
               id="cloud-email"
               class="setup-input rounded-none"
@@ -198,22 +217,33 @@
               autocapitalize="none"
               spellcheck={false}
             />
-            <Button type="submit" class="action rounded-none">
-              Connect<ArrowRight aria-hidden="true" />
-            </Button>
           </div>
+          <Button
+            type="submit"
+            class="action rounded-none"
+            aria-label="Connect account"
+          >
+            <span>Connect<span class="account-word">{" account"}</span></span>
+          </Button>
         </form>
       {:else if stage === "cloud"}
         <Button
-          class="action join-action rounded-none"
+          class="action peer-action rounded-none"
           aria-haspopup="dialog"
           onclick={(event) => openSetup("device", event.currentTarget)}
         >
-          Preview second device<ArrowRight aria-hidden="true" />
+          Link second device
         </Button>
       {/if}
-    {/snippet}
-  </KeyringScene>
+    </div>
+    <VaultMilestones
+      {stage}
+      {vault}
+      {account}
+      {device}
+      onEdit={(trigger) => openSetup("cloud", trigger)}
+    />
+  </Card.Root>
 </main>
 
 <SetupDialog
