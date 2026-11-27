@@ -179,6 +179,9 @@ main {
     linear-gradient(transparent, black 6%, black 94%, transparent);
   mask-composite: intersect;
 }
+.render.cloud-scene {
+  filter: none;
+}
 .render.visible {
   opacity: 1;
   visibility: visible;

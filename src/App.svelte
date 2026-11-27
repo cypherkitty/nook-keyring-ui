@@ -27,8 +27,8 @@
       id: "cloud",
       name: "Your cloud account",
       icon: Cloud,
-      image: "/keyring/cloud.webp",
-      alt: "A personal cloud-shaped storage module with an account symbol and the same vault keyhole.",
+      image: "/keyring/cloud-sync.webp",
+      alt: "A locked vault file floats in your cloud above a laptop and phone. Violet paths connect each local copy to the cloud copy.",
       title: ["Your own", "cloud account."],
       description:
         "Your cloud account stores an encrypted vault copy. Password changes pass through it between your devices.",
@@ -135,6 +135,7 @@
           <img
             class:visible={selectedId === location.id}
             class="render"
+            class:cloud-scene={location.id === "cloud"}
             src={location.image}
             alt={selectedId === location.id ? location.alt : ""}
             aria-hidden={selectedId !== location.id}
