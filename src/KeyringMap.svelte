@@ -4,7 +4,7 @@
   const places = [
     { name: "This device", kind: "laptop", planned: "Local vault" },
     {
-      name: "Your cloud account",
+      name: "Your own cloud account",
       kind: "cloud",
       planned: "Encrypted sync copy",
     },

@@ -74,13 +74,6 @@
         ? "Add your next device."
         : "Your vault is in sync.",
   );
-  const explanation = $derived(
-    !created
-      ? "Save your passwords on this device. Your own cloud account syncs an encrypted copy when you link another device."
-      : !linked
-        ? "Use the same cloud account on both devices. Each keeps an encrypted copy of the same vault."
-        : "Preview a password change and follow the updated copy from one device to the other.",
-  );
   const actionLabel = $derived(
     transfer
       ? "Syncing…"
@@ -130,7 +123,19 @@
         </span>Step {created ? "2" : "1"} of 2{/if}
     </div>
     <h1>{transfer && linked ? "Updating your vault." : title}</h1>
-    <p>{explanation}</p>
+    <p>
+      {#if !created}
+        When you sync, Nook saves an encrypted copy of your vault in
+        <strong>your own cloud account</strong>. A hosted password manager keeps
+        that copy on its servers.
+      {:else if !linked}
+        Connect both devices to the same cloud account. Your encrypted vault
+        will be stored in that account and on each device.
+      {:else}
+        Your cloud account and both devices now hold the same encrypted vault.
+        Preview a password change to see it sync.
+      {/if}
+    </p>
   </div>
 
   <section class="sheet" aria-labelledby="map-title">

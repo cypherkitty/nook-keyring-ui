@@ -95,7 +95,7 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 30%);
   column-gap: clamp(20px, 5vw, 74px);
-  align-items: end;
+  align-items: start;
   margin-bottom: clamp(22px, 3vw, 37px);
 }
 .phase {
@@ -195,7 +195,7 @@ h2 {
   cursor: wait;
   background: #4a608e;
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .introduction {
     grid-template-columns: 1fr;
     gap: 0;
@@ -241,9 +241,6 @@ h2 {
   }
   h1 {
     font-size: clamp(2.3rem, 8.5vw, 3.4rem);
-  }
-  .introduction p {
-    font-size: 0.93rem;
   }
   .sheet-header {
     min-height: 43px;
