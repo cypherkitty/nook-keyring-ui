@@ -129,7 +129,7 @@
     color: var(--ink);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 8px;
+
     cursor: pointer;
   }
   .station:hover {
@@ -137,8 +137,8 @@
   }
   .station.active {
     background: #fff;
-    border-color: #d8d6e2;
-    box-shadow: 0 2px 4px #2119390d;
+    border-color: #b6afc9;
+    box-shadow: inset 3px 0 0 var(--violet);
   }
   .node-icon {
     display: grid;
@@ -146,13 +146,15 @@
     flex: none;
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+
     color: #636370;
     background: #eeeef2;
+    border: 1px solid #dcdce4;
   }
   .active .node-icon {
     color: var(--violet);
     background: #efebff;
+    border-color: #c9bdf7;
   }
   .station-copy {
     min-width: 0;
@@ -182,7 +184,7 @@
     place-items: center;
     width: 16px;
     height: 16px;
-    border-radius: 50%;
+
     background: #eae4ff;
     color: var(--violet);
   }
@@ -222,7 +224,7 @@
       left: 50%;
       width: 4px;
       height: 4px;
-      border-radius: 50%;
+
       opacity: 0;
       background: var(--violet);
       transform: translate(-50%, -50%);
@@ -253,6 +255,9 @@
     }
   }
   @media (max-width: 959px) {
+    .station.active {
+      box-shadow: inset 0 -3px 0 var(--violet);
+    }
     .keyring {
       padding: 16px;
       border-right: 0;
@@ -331,7 +336,7 @@
     .node-icon {
       width: 26px;
       height: 26px;
-      border-radius: 6px;
+
     }
     .node-icon :global(svg) {
       width: 16px;

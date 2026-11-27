@@ -26,6 +26,7 @@ body {
     radial-gradient(ellipse at 73% 14%, #ebe9f5 0, transparent 56%), #f4f4f7;
 }
 button {
+  border-radius: 0;
   font: inherit;
 }
 button:focus-visible {
@@ -102,11 +103,8 @@ main {
   display: grid;
   grid-template-columns: clamp(205px, 18vw, 246px) minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid #d0cfd9;
-  border-radius: 15px;
-  box-shadow:
-    0 18px 65px -38px #36304470,
-    0 2px 8px #2921340b;
+  border: 1px solid #adaab9;
+  box-shadow: 4px 4px 0 #dcdae4;
 }
 .inspector {
   min-width: 0;
@@ -230,10 +228,9 @@ h1 em {
   color: white;
   background: #704dea;
   border: 1px solid #a791f3;
-  border-radius: 7px;
   box-shadow:
     inset 0 1px 0 #ab95fb66,
-    0 2px 7px #07050e44;
+    2px 2px 0 #2c204a;
   cursor: pointer;
 }
 .primary:hover {
@@ -299,9 +296,6 @@ h1 em {
   }
   main {
     margin-top: 16px;
-  }
-  .workspace {
-    border-radius: 11px;
   }
   .inspector {
     grid-template-columns: 1fr;
