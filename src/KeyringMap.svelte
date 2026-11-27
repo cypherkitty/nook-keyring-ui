@@ -119,24 +119,24 @@
     min-height: 85px;
     height: 100%;
     padding: 9px clamp(10px, 1vw, 17px);
-    border: 1px solid #383b35;
+    border: 1px solid var(--rule);
     border-radius: 10px;
-    background: #191b19;
+    background: #fffdf9;
     text-align: left;
-    color: #e5e7df;
+    color: var(--ink);
     cursor: pointer;
     transition:
       background 0.18s,
       border-color 0.18s;
   }
   .station:hover {
-    border-color: #6c7261;
-    background: #22251f;
+    border-color: #b7967f;
+    background: #f8eee5;
   }
   .station.active {
-    border-color: #8f9776;
-    background: linear-gradient(115deg, #292d24, #20231e);
-    box-shadow: inset 0 -2px 0 #b5c085;
+    border-color: #ae785b;
+    background: linear-gradient(115deg, #f7e5d7, #fbf0e6);
+    box-shadow: inset 0 -2px 0 var(--accent);
   }
   .thumbnail {
     display: block;
@@ -145,13 +145,14 @@
     aspect-ratio: 1.15;
     overflow: hidden;
     border-radius: 5px;
-    background: #151811;
+    background: #201913;
   }
   .thumbnail img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    filter: var(--hardware-finish);
   }
   .station-copy {
     min-width: 0;
@@ -168,7 +169,7 @@
     align-items: center;
     gap: 5px;
     font: 400 0.75rem/1.35 var(--mono);
-    color: #b5bca9;
+    color: var(--muted);
   }
   small :global(svg) {
     flex: none;
@@ -182,15 +183,15 @@
     width: 17px;
     height: 17px;
     border-radius: 50%;
-    background: #30372a;
+    background: #eed7c7;
     color: var(--accent);
   }
   .route {
     position: relative;
     height: 1.5px;
     margin: 0 7px;
-    background: #768065;
-    color: #a6b68a;
+    background: #9e7c66;
+    color: #8d6b55;
   }
   .route::before,
   .route::after {
@@ -211,7 +212,7 @@
     transform: translateY(-50%) rotate(45deg);
   }
   .linked .route {
-    background: #adbb8a;
+    background: var(--accent);
   }
   @media (prefers-reduced-motion: no-preference) {
     .linked .route i {
@@ -222,8 +223,8 @@
       height: 5px;
       border-radius: 50%;
       opacity: 0;
-      background: #e0e9b9;
-      box-shadow: 0 0 8px #d4eb94;
+      background: #b15229;
+      box-shadow: 0 0 8px #d89264;
       animation: travel 0.65s ease-in-out;
     }
     .linked .route.second i {
