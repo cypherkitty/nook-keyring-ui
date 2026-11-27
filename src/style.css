@@ -79,9 +79,9 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.94fr);
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
   align-items: center;
-  gap: clamp(32px, 4.6vw, 76px);
+  gap: clamp(24px, 3.4vw, 51px);
   min-height: min(730px, calc(100svh - 71px));
   padding-block: clamp(26px, 5vh, 58px);
 }
@@ -104,7 +104,7 @@ body {
 .setup-panel {
   container-type: inline-size;
   justify-self: end;
-  width: min(100%, 520px);
+  width: min(100%, 700px);
   min-width: 0;
   display: block;
   padding: 0;
@@ -115,43 +115,40 @@ body {
 .panel-header {
   display: block;
   padding: 0;
-  background: #232224;
-  border-bottom: 1px solid #3f3d3f;
+  border-bottom: 1px solid #4b4340;
 }
 .stepper {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 15px;
   padding: 0;
   list-style: none;
 }
 .stepper li,
 .keyring-bar,
-.keyring-bar > span,
-.storage-setting,
-.storage-setting > span,
-.row-state,
 .receipt-detail {
   display: flex;
   align-items: center;
 }
 .stepper li {
-  position: relative;
-  gap: 9px;
-  min-height: 52px;
-  padding: 8px clamp(13px, 4.5cqw, 24px);
-  font: 400 0.875rem/1.3 var(--mono);
-  color: #b6b3b4;
+  gap: 7px;
+  font: 400 0.8125rem/1.3 var(--mono);
+  color: #aaa5a5;
 }
-.stepper li + li {
-  border-left: 1px solid #403e40;
+.stepper li + li::before {
+  content: "";
+  width: clamp(12px, 2.7cqw, 22px);
+  height: 1px;
+  margin-right: 3px;
+  background: #595354;
 }
 .step-number {
   display: grid;
   place-items: center;
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 19px;
+  height: 19px;
   border: 1px solid #5a575a;
   font-size: 0.75rem;
 }
@@ -161,14 +158,6 @@ body {
 }
 .stepper li[aria-current="step"] {
   color: #ffceac;
-  background: #2b2421;
-}
-.stepper li[aria-current="step"]::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 -1px;
-  height: 2px;
-  background: var(--primary);
 }
 .stepper li[aria-current="step"] .step-number {
   border-color: var(--primary);
@@ -182,12 +171,12 @@ body {
 .panel-body {
   display: block;
   min-width: 0;
-  padding: clamp(20px, 6.4cqw, 35px);
+  padding: clamp(20px, 4.4cqw, 31px);
 }
 .panel-body h1 {
-  margin: 0 0 clamp(22px, 5.4cqw, 30px);
+  margin: 0 0 clamp(17px, 3.4cqw, 24px);
   color: #f8f5f0;
-  font-size: clamp(2rem, 8.7cqw, 2.85rem);
+  font-size: clamp(1.9rem, 7.2cqw, 2.7rem);
   line-height: 1.04;
   font-weight: 555;
   letter-spacing: -0.052em;
@@ -210,9 +199,7 @@ body {
 .field {
   gap: 8px;
 }
-.field label,
-.roster h2,
-.sync-account h2 {
+.field label {
   color: #e5e0dc;
   font-size: 0.93rem;
   font-weight: 550;
@@ -234,33 +221,14 @@ body {
   outline-offset: 2px;
   border-color: #a86e4c;
 }
-.storage-setting {
-  justify-content: space-between;
-  gap: 12px;
-  padding-block: 13px;
-  border-block: 1px solid #3a373a;
-}
-.storage-setting > span:first-child {
-  gap: 9px;
-  font-size: 0.95rem;
-  font-weight: 540;
-}
-.storage-setting > span:first-child svg {
-  width: 18px;
-  height: 18px;
-  color: #d5ceca;
-}
-.row-state,
 .receipt-detail,
 .small-label {
   color: #c4bdb9;
   font: 400 0.8rem/1.4 var(--mono);
 }
-.row-state,
 .receipt-detail {
   gap: 5px;
 }
-.row-state svg,
 .receipt-detail svg {
   width: 13px;
   height: 13px;
@@ -278,11 +246,15 @@ body {
 .primary-action {
   width: 100%;
 }
+.storage-record,
 .vault-receipt,
 .account-receipt {
   display: grid;
   align-items: center;
   gap: 12px;
+}
+.vault-receipt,
+.account-receipt {
   margin-bottom: 20px;
 }
 .vault-receipt {
@@ -323,9 +295,7 @@ body {
   display: grid;
   gap: 3px;
 }
-.identity strong,
-.device-list strong,
-.storage-record strong {
+.identity strong {
   min-width: 0;
   color: #f2ede7;
   font-size: 0.97rem;
@@ -364,55 +334,19 @@ body {
 }
 
 .keyring-bar {
-  min-height: 52px;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px clamp(14px, 4.5cqw, 24px);
-  color: #e5ded8;
-  font: 400 0.875rem/1.35 var(--mono);
-}
-.keyring-bar > span {
   gap: 7px;
+  margin-bottom: 12px;
+  color: #ffba88;
+  font: 400 0.875rem/1.35 var(--mono);
 }
 .keyring-bar svg {
   width: 16px;
   height: 16px;
 }
-.keyring-bar .synced {
-  color: #ffba88;
-}
-.roster h2,
-.sync-account h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 6px;
-}
-.count {
-  padding-inline: 5px;
-  border: 1px solid #50494a;
-  color: #c9c1ba;
-  font: 400 0.75rem/1.35 var(--mono);
-}
-.device-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.device-list li,
 .storage-record {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding-block: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-top: 15px;
   border-top: 1px solid #3d393d;
-}
-.sync-account {
-  margin-top: 19px;
-}
-.storage-record {
-  padding-bottom: 0;
 }
 
 .account-dialog {
@@ -461,6 +395,17 @@ body {
   border: 0;
   background: transparent;
 }
+@container (min-width: 495px) {
+  .setup-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 14px;
+  }
+  .setup-form .primary-action {
+    min-height: 47px;
+    padding-inline: 21px;
+  }
+}
 @container (max-width: 440px) {
   .account-receipt {
     grid-template-areas: "icon label change" "icon email email";
@@ -482,39 +427,26 @@ body {
     grid-area: change;
     min-height: 32px;
   }
-  .storage-record {
-    grid-template-columns: auto minmax(0, 1fr);
-    row-gap: 2px;
-  }
-  .storage-record .row-icon {
-    grid-row: span 2;
-  }
-  .storage-record .row-state {
-    grid-column: 2;
-  }
 }
 @container (max-width: 355px) {
   .panel-body {
     padding: 19px;
   }
   .stepper li {
-    padding-inline: 8px;
-    gap: 6px;
-    font-size: 0.81rem;
+    gap: 5px;
+    font-size: 0.75rem;
     white-space: nowrap;
   }
-  .row-state,
   .small-label,
   .receipt-detail {
     font-size: 0.76rem;
   }
   .account-receipt,
-  .device-list li,
   .storage-record {
     column-gap: 8px;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 810px) {
   .header-inner {
     min-height: 59px;
     gap: 7px;
@@ -543,15 +475,15 @@ body {
     min-height: auto;
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
-    gap: 12px;
+    gap: 8px;
     padding-block: 4px 25px;
   }
   .hero-art {
-    width: min(100%, clamp(208px, 35svh, 330px));
+    width: min(100%, clamp(145px, 29svh, 250px));
   }
   .setup-panel {
     justify-self: center;
-    width: min(100%, 495px);
+    width: min(100%, 610px);
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -4,16 +4,14 @@
   import { Input } from "$lib/components/ui/input";
   import * as Card from "$lib/components/ui/card";
   import Check from "@lucide/svelte/icons/check";
-  import Cloud from "@lucide/svelte/icons/cloud";
-  import HardDrive from "@lucide/svelte/icons/hard-drive";
-  import KeyRound from "@lucide/svelte/icons/key-round";
+  import CloudCheck from "@lucide/svelte/icons/cloud-check";
   import Link from "@lucide/svelte/icons/link";
   import Lock from "@lucide/svelte/icons/lock-keyhole";
-  import Devices from "@lucide/svelte/icons/monitor-smartphone";
   import Plus from "@lucide/svelte/icons/plus";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
   import Phone from "@lucide/svelte/icons/smartphone";
   import CloudAccount from "./CloudAccount.svelte";
+  import VaultSync from "./VaultSync.svelte";
 
   // Only the preview's display names are kept in memory.
   let vault = $state("");
@@ -22,6 +20,7 @@
   let vaultDraft = $state("Personal vault");
   let deviceDraft = $state("My phone");
   let heading;
+  let panel = $state(null);
   const steps = ["Create vault", "Link device"];
   const namePattern = ".*\\S.*";
   const title = $derived(
@@ -37,7 +36,7 @@
   async function focusHeading() {
     await tick();
     heading?.focus({ preventScroll: true });
-    heading?.scrollIntoView({ block: "nearest" });
+    panel?.scrollIntoView({ block: "nearest" });
   }
 
   function createVault(event) {
@@ -110,12 +109,15 @@
       </picture>
     </figure>
 
-    <Card.Root class="setup-panel rounded-none shadow-none">
+    <Card.Root bind:ref={panel} class="setup-panel rounded-none shadow-none">
       <Card.Header class="panel-header rounded-none">
+        <VaultSync {vault} {account} {linkedDevice} />
+      </Card.Header>
+
+      <Card.Content class="panel-body">
         {#if linkedDevice}
           <div class="keyring-bar">
-            <span><KeyRound aria-hidden="true" />Your keyring</span>
-            <span class="synced"><Check aria-hidden="true" />In sync</span>
+            <Check aria-hidden="true" />2 devices in sync
           </div>
         {:else}
           <ol class="stepper" aria-label="Setup steps">
@@ -133,9 +135,6 @@
             {/each}
           </ol>
         {/if}
-      </Card.Header>
-
-      <Card.Content class="panel-body">
         <h1 id="setup-heading" bind:this={heading} tabindex="-1">{title}</h1>
         {#if !vault}
           <form class="setup-form" onsubmit={createVault}>
@@ -151,46 +150,18 @@
                 title="Enter a vault name"
               />
             </div>
-            <div class="storage-setting">
-              <span><HardDrive aria-hidden="true" />This device</span>
-              <span class="row-state">
-                <Lock aria-hidden="true" />Encrypted
-              </span>
-            </div>
             <Button type="submit" class="primary-action rounded-none">
               <Plus aria-hidden="true" />Create vault
             </Button>
           </form>
         {:else if linkedDevice}
-          <section class="roster" aria-labelledby="devices-heading">
-            <h2 id="devices-heading">Devices <span class="count">2</span></h2>
-            <ul class="device-list">
-              <li>
-                <span class="row-icon"><Devices aria-hidden="true" /></span>
-                <strong>This device</strong>
-                <span class="row-state">
-                  <Lock aria-hidden="true" />Local copy
-                </span>
-              </li>
-              <li>
-                <span class="row-icon"><Phone aria-hidden="true" /></span>
-                <strong>{linkedDevice}</strong>
-                <span class="row-state">
-                  <Lock aria-hidden="true" />Local copy
-                </span>
-              </li>
-            </ul>
-          </section>
-          <section class="sync-account" aria-labelledby="sync-account-heading">
-            <h2 id="sync-account-heading">Cloud sync</h2>
-            <div class="storage-record">
-              <span class="row-icon"><Cloud aria-hidden="true" /></span>
+          <div class="storage-record">
+            <span class="row-icon"><CloudCheck aria-hidden="true" /></span>
+            <div class="identity">
+              <span class="small-label">Sync account</span>
               <strong>{account}</strong>
-              <span class="row-state">
-                <Lock aria-hidden="true" />Encrypted copy
-              </span>
             </div>
-          </section>
+          </div>
         {:else}
           {#if !account}
             <div class="vault-receipt">
