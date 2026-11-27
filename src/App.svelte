@@ -1,163 +1,226 @@
 <script>
   import { tick } from "svelte";
-  import { Button } from "$lib/components/ui/button";
   import Check from "@lucide/svelte/icons/check";
-  import Cloud from "@lucide/svelte/icons/cloud";
-  import Plus from "@lucide/svelte/icons/plus";
-  import Phone from "@lucide/svelte/icons/smartphone";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
   import KeyringScene from "./KeyringScene.svelte";
   import SetupDialog from "./SetupDialog.svelte";
 
-  // The prototype keeps only the display names for this setup session.
+  // Only the setup labels live in this preview session.
   let vault = $state("");
   let account = $state("");
   let device = $state("");
+  let vaultName = $state("Personal vault");
+  let email = $state("you@example.com");
   let dialogOpen = $state(false);
-  let dialogKind = $state("vault");
-  let draft = $state("");
+  let dialogKind = $state("device");
+  let dialogValue = $state("");
   let opener;
   let heading;
 
-  const next = $derived(
-    !vault ? "vault" : !account ? "cloud" : !device ? "device" : null,
+  const stage = $derived(
+    !vault ? "ready" : !account ? "local" : !device ? "cloud" : "linked",
   );
-  const actions = {
-    vault: { icon: Plus, label: "Create local vault" },
-    cloud: { icon: Cloud, label: "Connect cloud account" },
-    device: { icon: Phone, label: "Open second-device preview" },
+  const story = {
+    ready: {
+      title: "Build your keyring.",
+      hint: "Save passwords here. Sync an encrypted copy through your own cloud.",
+    },
+    local: {
+      title: "Your vault is on this device.",
+      hint: "Connect your own cloud so your next device can get an encrypted copy.",
+    },
+    cloud: {
+      title: "Your cloud has an encrypted copy.",
+      hint: "Open Nook on your second device with the same cloud account to join.",
+    },
+    linked: { title: "Your devices are in sync." },
   };
+
+  async function showResult() {
+    await tick();
+    heading?.focus({ preventScroll: true });
+    if (heading && heading.getBoundingClientRect().top < 0) {
+      heading.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+  }
+
+  function createVault(event) {
+    event.preventDefault();
+    const name = vaultName.trim();
+    if (stage !== "ready" || !name) return;
+    vault = name;
+    showResult();
+  }
+
+  function connectAccount(event) {
+    event.preventDefault();
+    if (stage !== "local") return;
+    account = email.trim();
+    showResult();
+  }
 
   function openSetup(kind, trigger) {
     dialogKind = kind;
-    draft =
-      kind === "vault"
-        ? "Personal vault"
-        : kind === "cloud"
-          ? account || "you@example.com"
-          : "My phone";
+    dialogValue = kind === "device" ? "My phone" : account;
     opener = trigger;
     dialogOpen = true;
   }
 
-  function save(kind, value) {
-    if (kind === "vault") vault = value;
-    else if (kind === "cloud") account = value;
-    else device = value;
+  function closeSetup(value) {
+    if (value === null) {
+      opener?.focus();
+      return;
+    }
+    if (dialogKind === "device") device = value;
+    else account = value;
+    showResult();
   }
 
-  async function returnFocus(confirmed) {
-    await tick();
-    if (!confirmed && opener?.isConnected) opener.focus();
-    else heading?.focus();
-  }
-
-  async function restart() {
+  function restart() {
     vault = "";
     account = "";
     device = "";
-    draft = "";
-    await tick();
-    heading?.focus();
+    vaultName = "Personal vault";
+    email = "you@example.com";
+    showResult();
   }
 </script>
 
 <header class="masthead">
-  <div class="brand">
-    <span class="wordmark">
-      <img src="/nook.svg" alt="" width="30" height="30" />nook
-    </span>
-    <span class="brand-purpose">Local-first password manager</span>
+  <div class="header-inner">
+    <div class="brand">
+      <span class="wordmark">
+        <img src="/nook.svg" alt="" width="23" height="23" />nook
+      </span>
+      <span class="brand-purpose">Local-first password manager</span>
+    </div>
+    {#if vault}
+      <Button
+        variant="ghost"
+        class="restart rounded-none"
+        aria-label="Restart preview"
+        onclick={restart}
+      >
+        <Restart aria-hidden="true" /><span>
+          Restart<span class="preview-word"> preview</span>
+        </span>
+      </Button>
+    {:else}
+      <span class="preview-label">Setup preview</span>
+    {/if}
   </div>
-  {#if vault}
-    <Button variant="ghost" class="restart rounded-none" onclick={restart}>
-      <Restart aria-hidden="true" />Restart preview
-    </Button>
-  {:else}
-    <span class="preview-label">Setup preview</span>
-  {/if}
 </header>
 
-<main class="workspace" aria-labelledby="setup-heading">
-  <div class="introduction">
-    {#if !device}
-      <div class="phase">
-        <span class="phase-rule" aria-hidden="true">
-          <i></i><i class:filled={!!vault}></i>
-        </span>
-        Step {vault ? 2 : 1} of 2
-      </div>
-    {:else}
-      <div class="phase complete">
-        <Check aria-hidden="true" />2 devices in sync
-      </div>
-    {/if}
+<main class="workbench" data-stage={stage} aria-labelledby="setup-heading">
+  <ol class="chapters" aria-label="Keyring setup progress">
+    <li
+      class:current={!vault}
+      class:done={!!vault}
+      aria-current={!vault ? "step" : undefined}
+    >
+      <span class="chapter-mark">
+        {#if vault}<Check aria-label="Completed" />{:else}1{/if}
+      </span>
+      {vault ? "Vault created" : "Create vault"}
+    </li>
+    <li
+      class:current={!!vault && !device}
+      class:done={!!device}
+      aria-current={vault && !device ? "step" : undefined}
+    >
+      <span class="chapter-mark">
+        {#if device}<Check aria-label="Completed" />{:else}2{/if}
+      </span>
+      {device ? "Device linked" : "Link a device"}
+    </li>
+  </ol>
+  <div class="story">
     <h1
+      id="setup-heading"
       bind:this={heading}
       tabindex="-1"
-      id="setup-heading"
-      class:named={!!device}
+      aria-describedby={story[stage].hint ? "journey-hint" : undefined}
     >
-      {#if !vault}Keep passwords <span>on this device.</span>
-      {:else if !account}Link a <span>second device.</span>
-      {:else if !device}Finish on your <span>other device.</span>
-      {:else}{vault}{/if}
+      {story[stage].title}
     </h1>
-    {#if !vault}
-      <p class="lead">
-        Your own cloud account syncs an encrypted copy across devices.
-      </p>
-    {:else if !account}
-      <p class="lead">
-        Connect your own cloud account to sync an encrypted copy of <strong>
-          {vault}
-        </strong>.
-      </p>
-    {:else if !device}
-      <p class="lead">
-        Open Nook on your other device and join with the same cloud account.
-      </p>
-    {/if}
+    {#if story[stage].hint}<p id="journey-hint">{story[stage].hint}</p>{/if}
   </div>
-  <KeyringScene {vault} {account} {device} onActivate={openSetup} />
-  <div class="setup-actions">
-    {#if account}
-      <div class="account-record">
-        <Cloud aria-hidden="true" />
-        <div class="record-text">
-          <span>Sync account</span><strong>{account}</strong>
-        </div>
-        {#if !device}
-          <Button
-            variant="ghost"
-            class="change-action rounded-none"
-            aria-label="Change cloud account"
-            onclick={(event) => openSetup("cloud", event.currentTarget)}
-          >
-            Change
-          </Button>
-        {/if}
-      </div>
-    {/if}
-    {#if next}
-      {@const action = actions[next]}
-      <Button
-        class="primary-action rounded-none"
-        aria-haspopup="dialog"
-        onclick={(event) => openSetup(next, event.currentTarget)}
-      >
-        <action.icon aria-hidden="true" strokeWidth={1.8} />{action.label}
-      </Button>
-    {/if}
-  </div>
+
+  <KeyringScene
+    {vault}
+    {account}
+    {device}
+    {stage}
+    onEdit={(trigger) => openSetup("cloud", trigger)}
+  >
+    {#snippet controls()}
+      {#if stage === "ready"}
+        <form
+          class="inline-form"
+          onsubmit={createVault}
+          aria-label="Create a vault on this device"
+        >
+          <label for="vault-name">Vault name</label>
+          <div class="input-action">
+            <Input
+              id="vault-name"
+              class="setup-input rounded-none"
+              bind:value={vaultName}
+              pattern={".*\\S.*"}
+              title="Enter a vault name"
+              required
+              autocomplete="off"
+            />
+            <Button type="submit" class="action rounded-none">
+              Create vault<ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
+        </form>
+      {:else if stage === "local"}
+        <form
+          class="inline-form"
+          onsubmit={connectAccount}
+          aria-label="Connect your cloud account"
+        >
+          <label for="cloud-email">Account email</label>
+          <div class="input-action">
+            <Input
+              id="cloud-email"
+              class="setup-input rounded-none"
+              type="email"
+              bind:value={email}
+              required
+              placeholder="you@example.com"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck={false}
+            />
+            <Button type="submit" class="action rounded-none">
+              Connect<ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
+        </form>
+      {:else if stage === "cloud"}
+        <Button
+          class="action join-action rounded-none"
+          aria-haspopup="dialog"
+          onclick={(event) => openSetup("device", event.currentTarget)}
+        >
+          Preview second device<ArrowRight aria-hidden="true" />
+        </Button>
+      {/if}
+    {/snippet}
+  </KeyringScene>
 </main>
 
 <SetupDialog
   bind:open={dialogOpen}
   kind={dialogKind}
-  bind:value={draft}
+  bind:value={dialogValue}
   {vault}
   {account}
-  onSave={save}
-  onReturn={returnFocus}
+  onReturn={closeSetup}
 />
