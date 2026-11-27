@@ -18,3 +18,7 @@ Each linked device keeps an encrypted copy for offline use. Your own cloud stora
 The setup UI uses Svelte 5 and shadcn-svelte. `App.svelte` keeps the vault name, cloud account label, and device name in memory. The keyring artwork and progress panel update together to show what is ready, what to do next, and why. Encryption, cloud sign-in, and cross-device sync are simulated.
 
 To run locally, use `bun install --frozen-lockfile` followed by `bun --bun run dev`.
+
+## GitHub Pages
+
+Merges to `main` update the [live prototype](https://cypherkitty.github.io/nook-keyring-ui/). Each successful PR build publishes a preview at `/nook-keyring-ui/pr/<number>/`. Open **Pages preview** in the PR checks to see it. Closing or merging the PR removes its preview.
