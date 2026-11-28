@@ -1,14 +1,10 @@
 <script>
   import { tick } from "svelte";
   import Check from "@lucide/svelte/icons/check";
-  import Cloud from "@lucide/svelte/icons/cloud";
-  import KeyRound from "@lucide/svelte/icons/key-round";
-  import Laptop from "@lucide/svelte/icons/laptop";
   import Restart from "@lucide/svelte/icons/rotate-ccw";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import * as Card from "$lib/components/ui/card";
-  import KeyringScene from "./KeyringScene.svelte";
   import VaultMilestones from "./VaultMilestones.svelte";
   import SetupDialog from "./SetupDialog.svelte";
 
@@ -22,41 +18,18 @@
   let dialogKind = $state("device");
   let dialogValue = $state("");
   let opener;
-  let heading;
+  let workbench;
 
   const stage = $derived(
     !vault ? "ready" : !account ? "local" : !device ? "cloud" : "linked",
   );
   const members = $derived(Number(!!vault) + Number(!!device));
-  const instructions = {
-    ready: {
-      icon: Laptop,
-      step: "Step 1 of 2",
-      title: "Create your local vault",
-      detail: "The devices you link to this vault form your keyring.",
-    },
-    local: {
-      icon: Check,
-      step: "Step 2 of 2 · Link another device",
-      title: "Your local vault is ready",
-      detail: "Connect your own cloud account to sync an encrypted copy.",
-    },
-    cloud: {
-      icon: Cloud,
-      step: "Step 2 of 2 · Link another device",
-      title: "Your cloud copy is ready",
-      detail: "Join from your second device with the same cloud account.",
-    },
-    linked: {
-      icon: Check,
-      step: "Setup complete",
-      title: "Your devices are in sync",
-    },
-  };
-  const current = $derived(instructions[stage]);
 
   async function showResult() {
     await tick();
+    const heading = workbench?.querySelector(
+      stage === "linked" ? "#vault-heading" : '[data-status="current"] h2',
+    );
     if (!heading) return;
     heading.focus({ preventScroll: true });
     const bounds = heading.getBoundingClientRect();
@@ -132,32 +105,31 @@
   </div>
 </header>
 
-<main class="workbench" data-stage={stage} aria-labelledby="vault-heading">
-  <div class="hero">
-    <div class="hero-copy">
-      <h1 id="vault-heading" title={vault || undefined}>
-        {vault || "One password vault for your devices"}
+<main bind:this={workbench} class="workbench" data-stage={stage} aria-labelledby="vault-heading">
+  <div class="bench-heading">
+    <div class="bench-title">
+      <h1
+        id="vault-heading"
+        tabindex="-1"
+        title={vault || undefined}
+        aria-describedby={vault ? "member-count" : undefined}
+      >
+        {#if vault}{vault}{:else}Save passwords here. <span>Sync through your cloud.</span>{/if}
       </h1>
-      {#if stage === "ready"}
-        <dl class="vault-locations">
-          <div>
-            <dt><Laptop aria-hidden="true" />On each device</dt>
-            <dd>Open your encrypted vault even when you’re offline.</dd>
-          </div>
-          <div>
-            <dt><Cloud aria-hidden="true" />In your own cloud account</dt>
-            <dd>An encrypted copy keeps your linked devices in sync.</dd>
-          </div>
-        </dl>
-      {:else}
-        <p>Linked devices sync your encrypted vault through your own cloud account.</p>
-        <div class="member-count">
-          <KeyRound aria-hidden="true" />{members}
-          {members === 1 ? "device" : "devices"} on your keyring
-        </div>
+      {#if vault}
+        <p id="member-count">{members === 1 ? "1 device on your keyring" : "2 devices in sync"}</p>
       {/if}
     </div>
-    <KeyringScene {stage} />
+    <ol class="setup-steps" role="list" aria-label="Setup progress">
+      <li class:complete={!!vault} aria-current={!vault ? "step" : undefined}>
+        <span class="step-mark" aria-hidden="true">{#if vault}<Check />{:else}1{/if}</span>
+        <span class="sr-only">Step 1 of 2. </span>{vault ? "Vault created" : "Create vault"}
+      </li>
+      <li class:complete={!!device} aria-current={vault && !device ? "step" : undefined}>
+        <span class="step-mark" aria-hidden="true">{#if device}<Check />{:else}2{/if}</span>
+        <span class="sr-only">Step 2 of 2. </span>{device ? "Device linked" : "Link device"}
+      </li>
+    </ol>
   </div>
 
   <Card.Root
@@ -165,26 +137,13 @@
     role="region"
     aria-label="Keyring setup progress"
   >
-    <div class="readiness">
-      <div class="readiness-message">
-        <span class="summary-icon" aria-hidden="true">
-          <current.icon strokeWidth={1.7} />
-        </span>
-        <div class="summary-copy">
-          <span class="chapter" id="setup-step">{current.step}</span>
-          <h2
-            id="setup-task"
-            bind:this={heading}
-            tabindex="-1"
-            aria-describedby={current.detail
-              ? "setup-step setup-reason"
-              : "setup-step"}
-          >
-            {current.title}
-          </h2>
-          {#if current.detail}<p id="setup-reason">{current.detail}</p>{/if}
-        </div>
-      </div>
+    <VaultMilestones
+      {stage}
+      {vault}
+      {account}
+      {device}
+      onEdit={(trigger) => openSetup("cloud", trigger)}
+    >
       {#if stage === "ready"}
         <form
           class="action-form"
@@ -237,21 +196,14 @@
         </form>
       {:else if stage === "cloud"}
         <Button
-          class="action peer-action rounded-none"
+          class="action rounded-none"
           aria-haspopup="dialog"
           onclick={(event) => openSetup("device", event.currentTarget)}
         >
           Link second device
         </Button>
       {/if}
-    </div>
-    <VaultMilestones
-      {stage}
-      {vault}
-      {account}
-      {device}
-      onEdit={(trigger) => openSetup("cloud", trigger)}
-    />
+    </VaultMilestones>
   </Card.Root>
 </main>
 
