@@ -33,7 +33,7 @@
       icon: Laptop,
       step: "Step 1 of 2",
       title: "Create your local vault",
-      detail: "Encrypt your passwords on this device.",
+      detail: "The devices you link to this vault form your keyring.",
     },
     local: {
       icon: Check,
@@ -136,17 +136,26 @@
   <div class="hero">
     <div class="hero-copy">
       <h1 id="vault-heading" title={vault || undefined}>
-        {vault || "Set up your password vault"}
+        {vault || "One password vault for your devices"}
       </h1>
-      <p>
-        {vault
-          ? "Linked devices sync your encrypted vault through your own cloud account."
-          : "Create a local vault, then link a second device through your own cloud account."}
-      </p>
-      <div class="member-count">
-        <KeyRound aria-hidden="true" />{members}
-        {members === 1 ? "device" : "devices"} on your keyring
-      </div>
+      {#if stage === "ready"}
+        <dl class="vault-locations">
+          <div>
+            <dt><Laptop aria-hidden="true" />On each device</dt>
+            <dd>Open your encrypted vault even when you’re offline.</dd>
+          </div>
+          <div>
+            <dt><Cloud aria-hidden="true" />In your own cloud account</dt>
+            <dd>An encrypted copy keeps your linked devices in sync.</dd>
+          </div>
+        </dl>
+      {:else}
+        <p>Linked devices sync your encrypted vault through your own cloud account.</p>
+        <div class="member-count">
+          <KeyRound aria-hidden="true" />{members}
+          {members === 1 ? "device" : "devices"} on your keyring
+        </div>
+      {/if}
     </div>
     <KeyringScene {stage} />
   </div>

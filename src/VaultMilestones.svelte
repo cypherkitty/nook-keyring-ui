@@ -29,7 +29,7 @@
         ? "Encrypted copy saved"
         : vault
           ? "Ready to connect"
-          : "Waiting for vault",
+          : "Connect in step 2",
     },
     {
       id: "device",
@@ -41,7 +41,9 @@
         ? "Local copy synced"
         : account
           ? "Ready to link"
-          : "Waiting for cloud",
+          : vault
+            ? "Waiting for cloud"
+            : "Will keep an offline copy",
     },
   ]);
 </script>

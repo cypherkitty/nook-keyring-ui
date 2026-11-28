@@ -1,0 +1,9 @@
+# UX guidance for Nook
+
+For changes to the setup UI, copy, or artwork, follow the product model in the [README](README.md).
+
+- **Explain the outcome before the first input.** Someone seeing Nook for the first time should understand where their passwords will live, how they can use them offline, and whose cloud account syncs the encrypted copies. Keep the first action in reach for someone who already knows the product. [GOV.UK Design System — Start using a service](https://design-system.service.gov.uk/patterns/start-using-a-service/)
+- **Use objects and words people recognize.** Start with passwords, this device, and the user’s own cloud account. Introduce the keyring as the devices that share a vault. Pair each change in the artwork with a visible label that explains what it means. [Nielsen Norman Group — Match Between the System and the Real World](https://www.nngroup.com/articles/match-system-real-world/)
+- **Make progress readable.** Keep two setup steps. Create the vault locally, then link another device through the user’s cloud account. Show what is planned, what has happened, and the next action in text. On each transition, carry keyboard and screen-reader users to the updated step. [W3C WAI — Multi-page Forms](https://www.w3.org/WAI/tutorials/forms/multi-page/)
+
+When reviewing the first screen on a phone or desktop, cover the artwork and read only what appears before “Create vault.” Can a newcomer tell where the vault will live and why they might link a second device?
