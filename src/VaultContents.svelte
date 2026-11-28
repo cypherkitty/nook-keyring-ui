@@ -5,7 +5,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import { Button } from "$lib/components/ui/button";
 
-  let { example, onExample } = $props();
+  let { vault, example, onExample } = $props();
   let library;
   let revealed = $state(false);
 
@@ -17,9 +17,12 @@
   }
 </script>
 
-<section class="passwords" aria-labelledby="passwords-heading" bind:this={library}>
+<section class="passwords" aria-labelledby="vault" bind:this={library}>
   <div class="passwords-toolbar">
-    <h2 id="passwords-heading">Passwords <span>{example ? 1 : 0}</span></h2>
+    <div class="passwords-title">
+      <h2 id="vault" tabindex="-1" title={vault}>{vault}</h2>
+      <span>{example ? "1 password" : "0 passwords"}</span>
+    </div>
     {#if !example}
       <Button variant="outline" class="add-example secondary-action rounded-none" onclick={() => setExample(true)}>
         <Plus aria-hidden="true" />Add example login
