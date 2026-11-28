@@ -1,5 +1,5 @@
 <script>
-  let { stage } = $props();
+  let { stage, attach = false } = $props();
   const artwork = import.meta.env.BASE_URL + "keyring/";
   const frames = [
     { stage: "ready", src: artwork + "ready.webp" },
@@ -11,6 +11,7 @@
 
 <figure
   class="photo-stack"
+  class:assembling={attach}
   role="img"
   aria-label={stage === "ready"
     ? "An empty steel ring with the first orange device tag waiting beside it."
@@ -45,7 +46,7 @@
       />
     </picture>
   {/each}
-  {#if stage === "local"}
+  {#if stage === "local" && attach}
     <div class="first-attachment" aria-hidden="true">
       <!-- Separate the amber acrylic from the neutral studio backdrop while the tag moves. -->
       <svg width="0" height="0" focusable="false">

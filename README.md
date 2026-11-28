@@ -1,4 +1,4 @@
-# Nook keyring setup
+# Nook local keyring
 
 Nook is a local-first, decentralized password manager. A **vault** holds your passwords. A **keyring** is the group of your devices that share access to that vault.
 
@@ -15,7 +15,9 @@ Each linked device keeps an encrypted copy for offline use. Your own cloud stora
 
 ## What the prototype implements
 
-The setup UI uses Svelte 5 and shadcn-svelte. `App.svelte` keeps the vault name, cloud account label, and device name in memory. The keyring artwork and progress panel update together to show what is ready, what to do next, and why. Encryption, cloud sign-in, and cross-device sync are simulated.
+The Svelte 5 and shadcn-svelte app opens directly into the local workspace. Create a vault in **My keyring** and it appears under **Vaults** immediately. You can open its password list while device setup is still in progress. On a return visit, the main URL opens the existing vault. **My keyring** always opens its devices and sync account.
+
+`src/workspace.js` saves the vault name, account label, device name, and presence of a built-in example in this browser’s local storage. Each deployment path has its own record. The password list accepts a fixed example login. Encryption, cloud sign-in, and cross-device sync are simulated.
 
 To run locally, use `bun install --frozen-lockfile` followed by `bun --bun run dev`.
 

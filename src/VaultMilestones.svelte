@@ -1,5 +1,6 @@
 <script>
   import Check from "@lucide/svelte/icons/check";
+  import Open from "@lucide/svelte/icons/chevron-right";
   import Cloud from "@lucide/svelte/icons/cloud";
   import Lock from "@lucide/svelte/icons/lock-keyhole";
   import Pencil from "@lucide/svelte/icons/pencil";
@@ -7,13 +8,13 @@
   import { Button } from "$lib/components/ui/button";
   import KeyringScene from "./KeyringScene.svelte";
 
-  let { stage, vault, account, device, onEdit, children } = $props();
+  let { stage, vault, account, device, animationStage, onEdit, children } = $props();
   let board;
   let copy;
 
   // Measure the actual stations so the same transfer follows the line on either layout.
   $effect(() => {
-    if (stage !== "cloud" && stage !== "linked") return;
+    if (stage !== animationStage || (stage !== "cloud" && stage !== "linked")) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const source = stage === "cloud" ? ".notebook-lid" : ".cloud-drive .vault-tag";
     const destination = stage === "cloud" ? ".cloud-drive .vault-tag" : ".handset .vault-tag";
@@ -37,7 +38,7 @@
     {
       id: "vault",
       name: "This device",
-      use: vault ? "Available offline" : "Offline vault",
+      use: vault ? "Available offline" : "Encrypted offline vault",
       value: vault,
       current: stage === "ready",
       prompt: "Step 1 of 2. Create the encrypted vault on this device.",
@@ -45,7 +46,8 @@
     {
       id: "cloud",
       name: "Your cloud account",
-      use: account ? "Syncs an encrypted copy" : "Will sync an encrypted copy",
+      use: "Encrypted sync copy",
+      pending: "Not connected",
       value: account,
       current: stage === "local",
       prompt: "Step 2 of 2. Your local vault is ready. Connect your own cloud account.",
@@ -53,7 +55,8 @@
     {
       id: "device",
       name: "Second device",
-      use: device ? "Available offline" : "Will keep an offline copy",
+      use: device ? "Available offline" : "Offline vault copy",
+      pending: "Not linked",
       value: device,
       current: stage === "cloud",
       prompt: "Step 2 of 2. Your cloud copy is ready. Link a device through the same account.",
@@ -85,7 +88,7 @@
           ></span>
           {#if location.id === "vault"}
             <div class="notebook">
-              <div class="notebook-lid"><KeyringScene {stage} /></div>
+              <div class="notebook-lid"><KeyringScene {stage} attach={animationStage === "local"} /></div>
               <div class="notebook-base"></div>
             </div>
           {:else if location.id === "cloud"}
@@ -106,20 +109,26 @@
           ></span>
         </div>
         <div class="station-console">
-          <div class="station-heading">
-            <h2 tabindex="-1" aria-describedby={"role-" + location.id + " state-" + location.id}>
-              {location.name}
-            </h2>
-            {#if location.value}<Check class="done-mark" aria-label="Complete" />{/if}
-          </div>
-          <div class="storage-role" id={"role-" + location.id}>
-            <Lock aria-hidden="true" />{location.use}
+          <div class="station-info">
+            <div class="station-heading">
+              <h3 tabindex="-1" aria-describedby={"role-" + location.id + " state-" + location.id}>
+                {location.name}
+              </h3>
+              {#if location.value}<Check class="done-mark" aria-hidden="true" />{/if}
+            </div>
+            <div class="storage-role" id={"role-" + location.id}>
+              <Lock aria-hidden="true" />{location.use}
+            </div>
           </div>
           <span class="sr-only" id={"state-" + location.id}>
             {location.current ? location.prompt : location.value ? "Ready." : "Planned."}
           </span>
           {#if location.current}
             <div class="station-action">{@render children()}</div>
+          {:else if location.id === "vault" && vault}
+            <a class="resource-link" href="#vault" aria-label={"Open " + vault} title={vault}>
+              <span>{vault}</span><Open aria-hidden="true" />
+            </a>
           {:else if location.id === "cloud" && account}
             {#if !device}
               <Button
@@ -138,6 +147,8 @@
             {/if}
           {:else if location.id === "device" && device}
             <span class="identity" title={device}>{device}</span>
+          {:else}
+            <span class="pending-status">{location.pending}</span>
           {/if}
         </div>
       </li>
