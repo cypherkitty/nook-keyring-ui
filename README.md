@@ -15,7 +15,7 @@ Each linked device keeps an encrypted copy for offline use. Your own cloud stora
 
 ## What the prototype implements
 
-The Svelte 5 and shadcn-svelte app opens directly into the local workspace. Create a vault in **My keyring** and it appears under **Vaults** immediately. You can open its password list while device setup is still in progress. On a return visit, the main URL opens the existing vault. **My keyring** always opens its devices and sync account.
+The Svelte 5 and shadcn-svelte app opens directly in the vault workspace. Creating a vault replaces the name field with its password list. You can use the list while linking another device below it. The keyring artwork gains a tag and the corresponding progress indicator updates as each encrypted copy is added. Returning to the main URL reopens the saved vault.
 
 `src/workspace.js` saves the vault name, account label, device name, and presence of a built-in example in this browser’s local storage. Each deployment path has its own record. The password list accepts a fixed example login. Encryption, cloud sign-in, and cross-device sync are simulated.
 

@@ -2,21 +2,18 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import * as Dialog from "$lib/components/ui/dialog";
-  import Cloud from "@lucide/svelte/icons/cloud";
 
   let {
     open = $bindable(false),
     kind,
     value = $bindable(""),
     vault,
-    account,
     onReturn,
   } = $props();
   let input = $state(null);
   let cancelButton = $state(null);
   let submittedValue = null;
   const actions = {
-    device: { title: "Link your second device", submit: "Add to keyring" },
     cloud: { title: "Change cloud account", submit: "Save account" },
     reset: { title: "Reset this workspace?", submit: "Reset workspace" },
   };
@@ -60,32 +57,21 @@
       </Dialog.Title>
       <Dialog.Description class="dialog-description">
         {#if kind === "reset"}Clear the vault name, linked devices and sample data saved in this browser.
-        {:else if kind === "device"}Use the same cloud account to open <strong>
-            {vault}
-          </strong> on that device.
         {:else}Choose the account that will hold your encrypted copy of <strong>
             {vault}
           </strong>.{/if}
       </Dialog.Description>
     </Dialog.Header>
     <form class="dialog-form" onsubmit={submit}>
-      {#if kind === "device"}
-        <div class="join-account">
-          <Cloud aria-hidden="true" />
-          <div><span>Your sync account</span><strong>{account}</strong></div>
-        </div>
-      {/if}
       {#if kind !== "reset"}
         <div class="field">
-          <label for="setup-value">{kind === "device" ? "Device name" : "Cloud account email"}</label>
+          <label for="setup-value">Cloud account email</label>
           <Input
             id="setup-value"
             class="setup-input rounded-none"
             bind:value
             bind:ref={input}
-            type={kind === "device" ? "text" : "email"}
-            pattern={kind === "device" ? ".*\\S.*" : undefined}
-            title={kind === "device" ? "Enter a device name" : undefined}
+            type="email"
             autocomplete="off"
             autocapitalize="none"
             spellcheck={false}
