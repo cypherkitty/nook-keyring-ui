@@ -1,83 +1,107 @@
 <script>
+  import { Tabs } from "bits-ui";
   import Check from "@lucide/svelte/icons/check";
   import Cloud from "@lucide/svelte/icons/cloud";
   import Laptop from "@lucide/svelte/icons/laptop";
+  import Phone from "@lucide/svelte/icons/smartphone";
+  import Sync from "@lucide/svelte/icons/arrow-left-right";
+  import Forward from "@lucide/svelte/icons/arrow-right";
   import Lock from "@lucide/svelte/icons/lock-keyhole";
   import Pencil from "@lucide/svelte/icons/pencil";
-  import Phone from "@lucide/svelte/icons/smartphone";
   import { Button } from "$lib/components/ui/button";
+  import { Progress } from "$lib/components/ui/progress";
+  import KeyringScene from "./KeyringScene.svelte";
 
-  let { stage, vault, account, device, lastAttachment, onEdit, children } = $props();
+  let { stage, vault, account, device, lastAttachment, selected = $bindable(), onEdit, onResume, children } = $props();
 
   const locations = $derived([
     {
-      id: "vault", name: "This device", icon: Laptop, role: vault ? "Saved offline" : "Encrypted offline vault",
-      attached: !!vault, current: stage === "ready",
-      phase: { number: 1, name: vault ? "Vault created" : "Create a local vault", done: !!vault, current: !vault },
+      id: "vault", name: "This device", icon: Laptop, identity: vault,
+      status: vault ? "Saved offline" : "Encrypted offline vault",
+      current: stage === "ready",
+      title: vault ? "Your local vault" : "Create your local vault",
     },
     {
-      id: "cloud", name: "Your cloud account", icon: Cloud, role: account ? "Encrypted copy saved" : "Encrypted sync copy",
-      attached: !!account, current: stage === "local",
-      phase: { number: 2, name: device ? "Second device linked" : "Link another device", done: !!device, current: !!vault && !device },
+      id: "cloud", name: "Your cloud account", icon: Cloud, identity: account,
+      status: account ? "Encrypted copy saved" : "Encrypted sync copy",
+      current: stage === "local",
+      title: account ? "Your connected storage" : "Connect your cloud account",
     },
     {
-      id: "device", name: device || "Second device", icon: Phone, role: device ? "Saved offline" : "Offline vault copy",
-      attached: !!device, current: stage === "cloud",
+      id: "device", name: device || "Second device", icon: Phone, identity: device,
+      status: device ? "Saved offline" : account ? "Ready to link" : "Offline vault copy",
+      current: stage === "cloud",
+      title: device ? "Your vault is on both devices" : "Link your second device",
     },
   ]);
 </script>
 
-<ol class="keyring-path" role="list" aria-label="Your devices sync an encrypted vault through your own cloud account">
-  {#each locations as location, i (location.id)}
-    {@const next = locations[i + 1]}
-    <li class="path-stop" data-location={location.id}
-      data-status={location.attached ? "done" : location.current ? "current" : "planned"}>
-      {#if location.phase}
-        <div class="phase-heading" id={"phase-" + location.phase.number} class:complete={location.phase.done} aria-current={location.phase.current ? "step" : undefined}>
-          <span class="phase-mark" aria-hidden="true">{#if location.phase.done}<Check />{:else}{location.phase.number}{/if}</span>
-          <span class="sr-only">Step {location.phase.number} of 2. </span><span>{location.phase.name}</span>
-        </div>
-      {/if}
-
-      <div class="path-port" aria-hidden="true">
-        <div class="port-symbol">
-          <location.icon class="port-icon" strokeWidth={1.5} />
-          {#if location.id === "cloud"}<Lock class="cloud-lock" strokeWidth={1.8} />{/if}
-          {#if location.attached}<span class="port-check"><Check strokeWidth={3} /></span>{/if}
-        </div>
-        {#if next}
-          <span class="sync-link" data-connected={next.attached} data-next={next.current}>
-            <span class="link-track"></span><span class="link-fill"></span>
-            {#if next.attached && lastAttachment === next.id}
-              <span class="copy-in-transit"><Lock strokeWidth={2} /></span>
+<Tabs.Root class="setup-workspace" bind:value={selected}>
+  <Tabs.List class="progress-menu" aria-label="Keyring setup progress">
+    {#each locations as location, index (location.id)}
+      {@const state = location.identity ? "done" : location.current ? "current" : "waiting"}
+      {@const detail = location.id === "device" ? vault : location.identity}
+      <div class="checkpoint" role="presentation" data-location={location.id}
+        data-status={state} data-selected={selected === location.id}>
+        <Tabs.Trigger value={location.id} class="checkpoint-button"
+          aria-current={location.current ? "step" : undefined}>
+          <span class="checkpoint-label">
+            <location.icon class="location-icon" strokeWidth={1.7} aria-hidden="true" />
+            <span class:named-device={location.id === "device" && !!device} title={location.name}>{location.name}</span>
+            {#if location.identity}<Check class="saved-check" strokeWidth={2.7} aria-hidden="true" />{/if}
+          </span>
+          <span class="checkpoint-detail">
+            <span class="sr-only">{state === "done" ? "Complete" : location.current ? "Current" : "Waiting"}. </span>
+            <span>{location.status}</span>
+            {#if location.identity}
+              <span class="checkpoint-identity" title={detail}> · {detail}</span>
             {/if}
           </span>
+        </Tabs.Trigger>
+        <Progress class="checkpoint-meter rounded-none" value={location.identity ? 1 : 0} max={1}
+          aria-hidden="true" />
+        {#if index > 0}
+          <span class="sync-bridge" class:connected={!!location.identity} aria-hidden="true"><Sync /></span>
         {/if}
       </div>
+    {/each}
+  </Tabs.List>
 
-      <div class="stop-content">
-        <h2 id={"location-" + location.id} tabindex="-1" aria-describedby={"phase-" + (i === 0 ? 1 : 2) + " role-" + location.id} title={location.id === "device" && device ? device : undefined}>{location.name}</h2>
-        <p class="stop-role" id={"role-" + location.id}>{location.role}</p>
-        {#if location.attached}
+  <div class="checkpoint-body">
+    {#each locations as location (location.id)}
+      <Tabs.Content value={location.id} class="checkpoint-panel" tabindex={-1}>
+        <div class="panel-intro">
+          <h2 id={"location-" + location.id} tabindex="-1">{location.title}</h2>
+          {#if location.current && location.id === "cloud"}
+            <p>Your storage syncs the encrypted vault to your next device.</p>
+          {:else if location.current && location.id === "device"}
+            <p id="join-account">Open Nook on that device with <strong>{account}</strong>.</p>
+          {:else if location.id === "cloud" && account}
+            <p class="connected-account"><Lock aria-hidden="true" />{account}</p>
+          {:else if !location.current && !location.identity}
+            <p>{location.id === "cloud" ? "Your storage will hold an encrypted copy of your vault." : "This device will keep an offline copy from your cloud account."}</p>
+          {/if}
+        </div>
+        {#if location.current}
+          {@render children()}
+        {:else if location.identity}
           {#if location.id === "cloud"}
-            {#if device}
-              <span class="stop-value" title={account}>{account}</span>
-            {:else}
-              <Button variant="link" class="edit-account rounded-none" aria-label="Change cloud account"
-                aria-describedby="sync-account-identity" aria-haspopup="dialog" title={account} onclick={(event) => onEdit(event.currentTarget)}>
-                <span id="sync-account-identity">{account}</span><Pencil aria-hidden="true" />
-              </Button>
+            {#if !device}
+              <Button variant="outline" class="secondary-action rounded-none" aria-haspopup="dialog"
+                onclick={(event) => onEdit(event.currentTarget)}><Pencil aria-hidden="true" />Change cloud account</Button>
             {/if}
           {:else}
-            <a class="vault-link" href="#vault" title={vault}><Lock aria-hidden="true" /><span>{vault}</span></a>
+            <a class="vault-link" href="#vault" title={vault}>
+              <Lock aria-hidden="true" /><span>{vault}</span><Forward aria-hidden="true" />
+            </a>
           {/if}
-        {:else if location.current}
-          {#if location.id === "device"}
-            <p class="join-account" id="join-account">Open Nook on that device with <strong>{account}</strong>.</p>
-          {/if}
-          <div class="stop-action">{@render children()}</div>
+        {:else}
+          <Button variant="outline" class="secondary-action rounded-none" onclick={onResume}>
+            {vault ? "Connect your cloud first" : "Create your vault first"}<Forward aria-hidden="true" />
+          </Button>
         {/if}
-      </div>
-    </li>
-  {/each}
-</ol>
+      </Tabs.Content>
+    {/each}
+    <div class="ring-view"><KeyringScene {stage} attach={lastAttachment === "vault"} /></div>
+  </div>
+</Tabs.Root>

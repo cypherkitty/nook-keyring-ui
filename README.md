@@ -15,7 +15,7 @@ Each linked device keeps an encrypted copy for offline use. Your own cloud stora
 
 ## What the prototype implements
 
-The Svelte 5 and shadcn-svelte app opens on the keyring. Create the vault at the first device on the sync path. Connect your storage at the cloud, then join at the second device. Each connection changes from dashed to solid as its encrypted copy is saved. The artwork gains a tag at each action. The password list opens directly below the path as soon as the vault exists and reopens on return.
+The Svelte 5 and shadcn-svelte app opens on the keyring. A progress menu connects this device, personal cloud storage, and the second device. Select a location to see its action or saved details. Saving each copy fills its bar, adds a tag to the artwork, and opens the next action. The password list opens below the menu as soon as the local vault exists and reopens on return.
 
 `src/workspace.js` saves the vault name, account label, device name, and presence of a built-in example in this browser’s local storage. Each deployment path has its own record. The password list accepts a fixed example login. Encryption, cloud sign-in, and cross-device sync are simulated.
 

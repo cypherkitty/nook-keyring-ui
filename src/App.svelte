@@ -3,7 +3,7 @@
   import More from "@lucide/svelte/icons/ellipsis";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
-  import KeyringScene from "./KeyringScene.svelte";
+  import Check from "@lucide/svelte/icons/check";
   import VaultMilestones from "./VaultMilestones.svelte";
   import VaultContents from "./VaultContents.svelte";
   import SetupDialog from "./SetupDialog.svelte";
@@ -23,6 +23,10 @@
   let optionsButton = $state(null);
   const { vault, account, device, example } = $derived(workspace);
   const stage = $derived(!vault ? "ready" : !account ? "local" : !device ? "cloud" : "linked");
+  const completedSteps = $derived(device ? 2 : vault ? 1 : 0);
+  const locationByStage = { ready: "vault", local: "cloud", cloud: "device", linked: "device" };
+  // Inspecting a location changes the view. Only a saved action advances setup.
+  let selectedLocation = $derived(locationByStage[stage]);
   const membershipByStage = {
     ready: "0 devices linked",
     local: "1 device · Local only",
@@ -39,11 +43,16 @@
     if (rect.top < 0 || rect.bottom > innerHeight) heading.scrollIntoView({ block: "nearest" });
   }
 
+  function showLocation(id) {
+    selectedLocation = id;
+    return focusSection("location-" + id);
+  }
+
   function followLink() {
     switch (location.hash) {
-      case "#vault": return focusSection(vault ? "vault" : "location-vault");
-      case "#keyring/cloud": return focusSection("location-cloud");
-      case "#keyring/device": return focusSection("location-device");
+      case "#vault": return vault ? focusSection("vault") : showLocation("vault");
+      case "#keyring/cloud": return showLocation("cloud");
+      case "#keyring/device": return showLocation("device");
       case "#vault/keyring":
       case "#keyring": return focusSection("keyring");
     }
@@ -82,7 +91,7 @@
     if (stage !== "ready" || !name) return;
     lastAttachment = "vault";
     save({ ...workspace, vault: name });
-    focusSection("location-cloud");
+    showLocation("cloud");
   }
 
   function connectAccount(event) {
@@ -90,7 +99,7 @@
     if (stage !== "local" || !email.trim()) return;
     lastAttachment = "cloud";
     save({ ...workspace, account: email.trim() });
-    focusSection("location-device");
+    showLocation("device");
   }
 
   function linkDevice(event) {
@@ -99,7 +108,7 @@
     if (stage !== "cloud" || !name) return;
     lastAttachment = "device";
     save({ ...workspace, device: name });
-    focusSection("location-device");
+    showLocation("device");
   }
 
   function openDialog(kind, trigger) {
@@ -120,7 +129,7 @@
       focusSection("vault-name");
     } else if (stage === "cloud") {
       save({ ...workspace, account: value });
-      focusSection("location-device");
+      showLocation("device");
     }
   }
 </script>
@@ -153,11 +162,19 @@
 <main class="workbench" data-stage={stage} aria-labelledby="keyring">
   <section class="keyring-workspace" aria-labelledby="keyring">
     <header class="keyring-heading">
-      <h1 id="keyring" tabindex="-1">My keyring</h1>
-      <p class="membership" aria-live="polite" aria-atomic="true">{membershipByStage[stage]}</p>
+      <div class="keyring-identity">
+        <h1 id="keyring" tabindex="-1">My keyring</h1>
+        <p class="membership" aria-live="polite" aria-atomic="true">{membershipByStage[stage]}</p>
+      </div>
+      <p class="phase-summary" class:complete={!!device} role="progressbar" aria-label="Keyring setup"
+        aria-valuemin="0" aria-valuemax="2" aria-valuenow={completedSteps} aria-valuetext={completedSteps + " of 2 steps complete"}>
+        {#if device}<Check aria-hidden="true" />Setup complete
+        {:else}Step {vault ? "2" : "1"} of 2<span class="phase-name"> · {vault ? "Link a device" : "Create vault"}</span>{/if}
+      </p>
     </header>
 
     <VaultMilestones {stage} {vault} {account} {device} {lastAttachment}
+      bind:selected={selectedLocation} onResume={() => showLocation(locationByStage[stage])}
       onEdit={(trigger) => openDialog("cloud", trigger)}>
       {#if stage === "ready"}
         <form class="action-form" aria-label="Create a vault on this device" onsubmit={createVault}>
@@ -189,9 +206,6 @@
       {/if}
     </VaultMilestones>
 
-    <div class="ring-view">
-      <KeyringScene {stage} attach={lastAttachment === "vault"} />
-    </div>
   </section>
 
   {#if vault}
